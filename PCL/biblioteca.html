@@ -1,0 +1,147 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal PSEU | Biblioteca</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-shell internal-page portal-page" data-library-page>
+  <div class="page-haze page-haze-left" aria-hidden="true"></div>
+  <div class="page-haze page-haze-right" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">P</span>
+      <span class="brand-copy">
+        <strong>PSEU</strong>
+        <small>portal secreto</small>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Navegacao principal">
+      <a href="dashboard.html">Inicio</a>
+      <a class="active" href="biblioteca.html">Biblioteca</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+    <a class="button button-small" href="index.html">Sair</a>
+  </header>
+
+  <main class="content-wrap">
+    <section class="library-header cinematic-panel">
+      <p class="eyebrow">Biblioteca secreta</p>
+      <h1>Escolha a proxima porta.</h1>
+      <p class="hero-copy">Obras liberadas, proximos lancamentos e conteudos premium organizados em uma experiencia de acervo vivo.</p>
+      <div class="meta-strip meta-strip-wide">
+        <span data-library-available-count>2 livros liberados</span>
+        <span data-library-soon-count>2 em breve</span>
+        <span data-library-progress-summary>35% media de leitura</span>
+      </div>
+      <label class="library-search" aria-label="Buscar livros">
+        <span class="library-search-icon" aria-hidden="true"></span>
+        <input type="search" placeholder="Buscar livros, categorias..." autocomplete="off">
+      </label>
+      <div class="library-filter-row" aria-label="Categorias de livros">
+        <span class="filter-chip active">Todos</span>
+        <span class="filter-chip">Despertar</span>
+        <span class="filter-chip">Lideranca</span>
+        <span class="filter-chip">Futuros lancamentos</span>
+      </div>
+    </section>
+
+    <section class="section-heading section-lead">
+      <p class="eyebrow">Acervo</p>
+      <h2>Livros liberados e espacos bloqueados em equilibrio.</h2>
+    </section>
+
+    <section class="library-group">
+      <div class="library-group-head">
+        <p class="eyebrow">Disponiveis agora</p>
+        <h2>Livros prontos para leitura e progresso individual.</h2>
+      </div>
+
+      <section class="library-grid" aria-label="Livros disponiveis do portal">
+        <article class="book-tile cinematic-card" data-book-card-id="manual-do-despertar">
+          <div class="book-cover cover-awakening"><span>Manual do Despertar</span></div>
+          <div class="book-meta">
+            <p class="status available">Liberado</p>
+            <h2>Manual do Despertar</h2>
+            <p>Primeiro nucleo da jornada, com ritmo de abertura e contraste de consciencia.</p>
+            <div class="meta-strip">
+              <span>7 capitulos</span>
+              <span>42% lido</span>
+            </div>
+            <div class="book-progress" aria-hidden="true">
+              <div class="book-progress-track"><span data-book-card-progress-bar style="width:42%"></span></div>
+              <div class="book-progress-copy">
+                <strong data-book-card-progress>42%</strong>
+                <span data-book-card-position>Capitulo 04</span>
+              </div>
+            </div>
+            <a class="button button-small" href="manual-do-despertar.html">Ler agora</a>
+          </div>
+        </article>
+
+        <article class="book-tile cinematic-card" data-book-card-id="manual-do-lider-estoico">
+          <div class="book-cover cover-stoic"><span>Manual do Lider Estoico</span></div>
+          <div class="book-meta">
+            <p class="status available">Liberado</p>
+            <h2>Manual do Lider Estoico</h2>
+            <p>Disciplina, comando emocional e presenca estrategica em tempos de pressao.</p>
+            <div class="meta-strip">
+              <span>8 capitulos</span>
+              <span>18% lido</span>
+            </div>
+            <div class="book-progress" aria-hidden="true">
+              <div class="book-progress-track"><span data-book-card-progress-bar style="width:18%"></span></div>
+              <div class="book-progress-copy">
+                <strong data-book-card-progress>18%</strong>
+                <span data-book-card-position>Capitulo 02</span>
+              </div>
+            </div>
+            <a class="button button-small" href="manual-do-lider-estoico.html">Ler agora</a>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section class="library-group">
+      <div class="library-group-head">
+        <p class="eyebrow">Futuros lancamentos</p>
+        <h2>Obras bloqueadas com tratamento premium de em breve.</h2>
+      </div>
+
+      <section class="library-grid" aria-label="Livros futuros do portal">
+      <article class="book-tile cinematic-card locked" data-book-card-id="arquitetura-da-mente">
+        <div class="book-cover cover-locked"><span>Arquitetura da Mente</span></div>
+        <div class="book-meta">
+          <p class="status locked-status">Em breve</p>
+          <h2>Arquitetura da Mente</h2>
+          <p>Uma camada mais profunda do portal, ainda em silencio.</p>
+          <div class="meta-strip">
+            <span>Reservado</span>
+            <span>Proximo lancamento</span>
+          </div>
+          <button class="button button-small" disabled>Bloqueado</button>
+        </div>
+      </article>
+
+      <article class="book-tile cinematic-card locked" data-book-card-id="codigos-da-sombra">
+        <div class="book-cover cover-locked-red"><span>Codigos da Sombra</span></div>
+        <div class="book-meta">
+          <p class="status locked-status">Em breve</p>
+          <h2>Codigos da Sombra</h2>
+          <p>Conteudo futuro com foco em narrativa, simbolo e exclusividade.</p>
+          <div class="meta-strip">
+            <span>Reservado</span>
+            <span>Em curadoria</span>
+          </div>
+          <button class="button button-small" disabled>Bloqueado</button>
+        </div>
+      </article>
+      </section>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal PSEU | Leitor</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-shell internal-page portal-page reader-page">
+  <div class="page-haze page-haze-left" aria-hidden="true"></div>
+  <div class="page-haze page-haze-right" aria-hidden="true"></div>
+
+  <header class="reader-topbar">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">P</span>
+      <span class="brand-copy">
+        <strong>PSEU</strong>
+        <small>portal secreto</small>
+      </span>
+    </a>
+
+    <div class="reader-progress-shell" aria-label="Progresso de leitura">
+      <div class="reader-progress">
+        <span data-reader-progress-bar></span>
+      </div>
+      <div class="reader-progress-meta">
+        <strong data-reader-progress-label>0% capa</strong>
+        <span>leitura</span>
+      </div>
+    </div>
+
+    <div class="reader-top-actions">
+      <button class="button button-small" type="button" data-marker-toggle>Marcar página</button>
+      <a class="button button-small" href="biblioteca.html" data-reader-close-link>Fechar</a>
+    </div>
+  </header>
+
+  <main class="reader-layout">
+    <aside class="reader-sidebar cinematic-panel">
+      <p class="eyebrow">Capítulos</p>
+      <nav class="reader-chapter-nav" data-reader-chapter-nav aria-label="Navegação de capítulos"></nav>
+
+      <div class="reader-sidebar-card">
+        <p class="eyebrow">Leitura atual</p>
+        <strong data-reader-book-title>Manual do Despertar</strong>
+        <p data-reader-hint>PDF renderizado com PDF.js. Navegação sincronizada com progresso.</p>
+      </div>
+    </aside>
+
+    <article class="reader-content cinematic-panel">
+      <!-- Container para PDF via PDF.js -->
+      <div class="reader-pdf-container" data-pdf-viewer></div>
+      
+      <!-- Fallback HTML para conteúdo simulado -->
+      <div class="reader-hero">
+        <p class="eyebrow" data-reader-book-subtitle>Primeira travessia</p>
+        <h1 data-reader-book-title>Manual do Despertar</h1>
+        <p class="reader-intro" data-reader-intro>
+          Este leitor renderiza PDFs com PDF.js quando disponível, ou conteúdo HTML como fallback.
+        </p>
+        <div class="reader-meta-strip">
+          <span data-reader-book-chapters>7 capítulos</span>
+          <span data-reader-progress-label>0% lido</span>
+          <span>Leitura iniciada</span>
+        </div>
+      </div>
+
+      <div data-reader-chapters></div>
+    </article>
+
+    <aside class="notes-panel cinematic-panel">
+      <p class="eyebrow">Marcador</p>
+      <div class="marker-state" data-marker-state>Sem marca ativa</div>
+      <textarea placeholder="Escreva uma nota ou observação..."></textarea>
+      <button class="button button-small" type="button">Salvar nota</button>
+    </aside>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

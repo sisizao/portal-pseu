@@ -1,0 +1,21 @@
+{
+  "name": "portal-pseu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portal PSEU backend operacional minimo.",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "node server/app.js",
+    "db:schema": "psql \"%DATABASE_URL%\" -f server/db/schema.sql",
+    "db:seed:dev": "psql \"%DATABASE_URL%\" -f server/db/seed-dev.sql"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "pg": "^8.13.1"
+  }
+}

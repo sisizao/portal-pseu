@@ -1,0 +1,23 @@
+[
+  {
+    "id": "manual-do-despertar",
+    "title": "Manual do Despertar",
+    "status": "available",
+    "progress": 42,
+    "chapters": 7
+  },
+  {
+    "id": "manual-do-lider-estoico",
+    "title": "Manual do Lider Estoico",
+    "status": "available",
+    "progress": 0,
+    "chapters": 8
+  },
+  {
+    "id": "arquitetura-da-mente",
+    "title": "Arquitetura da Mente",
+    "status": "coming-soon",
+    "progress": 0,
+    "chapters": 0
+  }
+]

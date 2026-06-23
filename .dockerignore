@@ -1,0 +1,71 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies are installed inside the image
+node_modules/
+
+# Repository and local tooling metadata
+.git/
+.gitignore
+.codex/
+.agents/
+
+# Logs and temporary files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+*.dmp
+*.swp
+*.swo
+*~
+
+# Local browser profiles and temporary workspaces
+.edge-pseu-check/
+.edge-pseu-preview/
+_tmp_chrome_*/
+_tmp_edge_*/
+
+# Backups, legacy material, and local work archives
+_BACKUP_CHECKPOINT/
+deprecated/
+legacy/
+unused/
+Nova pasta/
+CENTRAL_PSEU/
+Eu sou PortaL/
+Reprogramação da Mente/
+Senna/
+sonhos e seu sentido/
+videos curtos/
+
+# Installers and compressed work files
+*.zip
+*.rar
+*.7z
+*.exe
+*.msi
+
+# Raw video media must be hosted outside the application image
+*.mp4
+*.mov
+*.MOV
+
+# Local administration and DEV-only data
+admin-local.html
+css/admin.css
+js/admin.js
+css/*.before-*.css
+CHECKPOINT_TECNICO.md
+Untitled-1.txt
+server/db/seed-dev.sql
+
+# Private PDFs are excluded by default. Mount them privately or remove this
+# rule explicitly only when the initial deployment has protected storage.
+private/pdfs/

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <radialGradient id="bgv" cx="50%" cy="20%" r="85%">
+      <stop offset="0%" stop-color="#0d0810"/>
+      <stop offset="40%" stop-color="#130b19"/>
+      <stop offset="100%" stop-color="#030205"/>
+    </radialGradient>
+    <linearGradient id="portalv" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c1227"/>
+      <stop offset="100%" stop-color="#09060b"/>
+    </linearGradient>
+    <filter id="glowv" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#bgv)" />
+  <ellipse cx="540" cy="400" rx="460" ry="260" fill="rgba(231,187,106,0.14)" filter="url(#glowv)" />
+
+  <path d="M400,1920 C360,1220 360,720 470,340 C600,680 700,1140 680,1920 Z" fill="#120a18"/>
+  <path d="M433,1920 C425,1190 445,750 540,530 C620,700 640,980 620,1920 Z" fill="#08050b"/>
+
+  <g transform="translate(240 620)">
+    <path d="M300,0 C380,0 470,60 520,160 C570,260 580,380 560,520 C520,770 420,910 320,980 C185,1085 70,900 90,640 C108,430 180,280 300,180 Z" fill="url(#portalv)"/>
+    <path d="M300,170 C330,170 360,190 360,220 C360,260 330,280 300,280 C270,280 240,260 240,220 C240,190 270,170 300,170 Z" fill="rgba(231,187,106,0.16)"/>
+  </g>
+
+  <g opacity="0.18" fill="none" stroke="#5f5b7b" stroke-width="3">
+    <path d="M220,820 C260,760 330,720 420,740"/>
+    <path d="M220,900 C280,860 340,860 420,900"/>
+    <path d="M250,1030 C310,980 380,980 450,1030"/>
+  </g>
+
+  <g transform="translate(520 1100)">
+    <path d="M0,0 C10,-80 24,-160 48,-216 C64,-256 92,-302 136,-328 C184,-356 236,-346 270,-296 C300,-254 312,-188 308,-100 C304,-4 276,68 238,120 C204,168 168,196 118,230 C100,248 82,268 58,288 C44,298 28,318 8,344 Z" fill="#040308"/>
+    <path d="M18,24 C34,-22 62,-78 120,-92 C138,-96 170,-92 188,-78 C214,-54 222,-18 218,40 C212,108 178,176 146,222 C116,264 88,288 60,310 C46,320 34,334 18,348 Z" fill="rgba(255,255,255,0.05)"/>
+  </g>
+
+  <g opacity="0.14">
+    <path d="M270,480 C320,420 390,390 470,420" stroke="#4a6d98" stroke-width="18" fill="none"/>
+    <path d="M830,500 C880,440 960,420 1030,460" stroke="#7d5f8b" stroke-width="16" fill="none"/>
+  </g>
+</svg>

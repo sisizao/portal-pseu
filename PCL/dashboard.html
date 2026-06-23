@@ -1,0 +1,161 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal PSEU | Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="page-shell internal-page portal-page" data-dashboard-page>
+  <div class="page-haze page-haze-left" aria-hidden="true"></div>
+  <div class="page-haze page-haze-right" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">P</span>
+      <span class="brand-copy">
+        <strong>PSEU</strong>
+        <small>portal secreto</small>
+      </span>
+    </a>
+    <nav class="nav-links" aria-label="Navegacao principal">
+      <a class="active" href="dashboard.html">Inicio</a>
+      <a href="biblioteca.html">Biblioteca</a>
+      <a href="perfil.html">Perfil</a>
+    </nav>
+    <a class="button button-small" href="index.html">Sair</a>
+  </header>
+
+  <main class="content-wrap">
+    <section class="dashboard-hero cinematic-panel">
+      <div class="hero-copy-block">
+        <p class="eyebrow">Sala interna</p>
+        <h1>Bem-vindo ao seu acervo de transformacao.</h1>
+        <p class="hero-copy">
+          Continue leituras, acompanhe seu progresso e acesse os manuais que compoem o primeiro nucleo do portal.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="leitor.html?book=manual-do-despertar" data-continue-link>Continuar leitura</a>
+          <a class="button button-ghost" href="biblioteca.html">Abrir biblioteca</a>
+        </div>
+      </div>
+      <aside class="portal-scene" aria-label="Atmosfera do portal">
+        <div class="portal-scene-ring" aria-hidden="true"></div>
+        <div class="portal-scene-core" aria-hidden="true"></div>
+        <div class="portal-scene-glow" aria-hidden="true"></div>
+        <div class="portal-scene-copy">
+          <p class="eyebrow">Progresso geral</p>
+          <span data-overall-progress>42%</span>
+          <small data-overall-progress-label>jornada inicial</small>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section-heading section-lead">
+      <p class="eyebrow">Agora no portal</p>
+      <h2>Continue de onde parou</h2>
+    </section>
+
+    <section class="continue-grid">
+      <article class="continue-feature cinematic-card unlocked">
+        <div class="book-cover cover-awakening large-cover">
+          <span>Manual do Despertar</span>
+        </div>
+        <div class="continue-copy">
+          <p class="status available" data-continue-status>Disponivel agora</p>
+          <h3 data-continue-title>Manual do Despertar</h3>
+          <p data-continue-description>Primeira travessia: consciencia, ruptura de padroes e retorno ao centro.</p>
+          <div class="meta-strip">
+            <span data-continue-state>Leitura em andamento</span>
+            <span data-continue-remaining>24 min restantes</span>
+            <span data-continue-chapters>7 capitulos</span>
+            <span data-continue-progress>42% lido</span>
+          </div>
+          <div class="hero-actions">
+            <a class="button button-primary" href="manual-do-despertar.html" data-continue-book-link>Ler agora</a>
+            <a class="button button-ghost" href="leitor.html?book=manual-do-despertar" data-continue-reader-link>Continuar no leitor</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="continue-side cinematic-card unlocked">
+        <div class="mini-tile">
+          <div class="mini-cover cover-stoic"><span>Lider Estoico</span></div>
+          <div>
+            <p class="status available">Disponivel</p>
+            <h3>Manual do Lider Estoico</h3>
+            <p>Disciplina, comando emocional e presenca estrategica em tempos de pressao.</p>
+            <div class="meta-strip">
+              <span>8 capitulos</span>
+              <span>18% lido</span>
+            </div>
+            <a class="button button-small" href="manual-do-lider-estoico.html">Ler agora</a>
+          </div>
+        </div>
+        <div class="mini-tile muted-tile">
+          <div class="mini-cover cover-shadow"><span>Em breve</span></div>
+          <div>
+            <p class="status locked-status">Bloqueado</p>
+            <h3>Arquitetura da Mente</h3>
+            <p>Uma camada mais profunda do portal, ainda em silencio.</p>
+            <div class="meta-strip">
+              <span>Reservado</span>
+              <span>Proximo lancamento</span>
+            </div>
+            <button class="button button-small" disabled>Em breve</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="section-heading section-lead">
+      <p class="eyebrow">Historico recente</p>
+      <h2>Ultimas leituras e retomadas simuladas.</h2>
+    </section>
+
+    <section class="history-grid">
+      <article class="history-card cinematic-card" data-history-slot="0">
+        <p class="status available" data-history-status>Retomada recente</p>
+        <h3 data-history-title>Manual do Despertar</h3>
+        <p data-history-copy>Capitulo 04, pagina simulada 128. Apos isso, o portal salva a posicao automaticamente.</p>
+      </article>
+      <article class="history-card cinematic-card" data-history-slot="1">
+        <p class="status available" data-history-status>Leitura aberta</p>
+        <h3 data-history-title>Manual do Lider Estoico</h3>
+        <p data-history-copy>Capitulo 02, inicio recente. A estrutura ja esta pronta para registro futuro real.</p>
+      </article>
+      <article class="history-card cinematic-card" data-history-slot="2">
+        <p class="status locked-status" data-history-status>Biblioteca</p>
+        <h3 data-history-title>Arquitetura da Mente</h3>
+        <p data-history-copy>Entrada reservada para um proximo ciclo do acervo premium.</p>
+      </article>
+    </section>
+
+    <section class="section-heading section-lead">
+      <p class="eyebrow">Ecosistema futuro</p>
+      <h2>Placeholders para login, pagamento e sincronizacao real.</h2>
+    </section>
+
+    <section class="ecosystem-grid">
+      <article class="ecosystem-card cinematic-panel">
+        <p class="eyebrow">Conta futura</p>
+        <h3>Identidade do leitor</h3>
+        <p>Area reservada para login real, dados do usuario e sessao persistente.</p>
+      </article>
+      <article class="ecosystem-card cinematic-panel">
+        <p class="eyebrow">Pagamentos</p>
+        <h3>Camada premium</h3>
+        <p>Estrutura visual preparada para assinatura, checkout e planos futuros.</p>
+      </article>
+      <article class="ecosystem-card cinematic-panel">
+        <p class="eyebrow">Sincronizacao</p>
+        <h3>Biblioteca viva</h3>
+        <p>Espaco pronto para progresso, marcadores e historico entre dispositivos.</p>
+      </article>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+

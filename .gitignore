@@ -1,0 +1,77 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and runtime output
+node_modules/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local tooling and repository metadata
+.git/
+.codex/
+.agents/
+
+# Local browser profiles and temporary workspaces
+.edge-pseu-check/
+.edge-pseu-preview/
+_tmp_chrome_*/
+_tmp_edge_*/
+
+# Backups, legacy material, and local work archives
+_BACKUP_CHECKPOINT/
+deprecated/
+legacy/
+unused/
+Nova pasta/
+CENTRAL_PSEU/
+Eu sou PortaL/
+Reprogramação da Mente/
+Senna/
+sonhos e seu sentido/
+videos curtos/
+escesqueleto/
+arsenal visual PSEU/
+
+# Temporary and diagnostic files
+*.tmp
+*.temp
+*.srt
+*.dmp
+*.swp
+*.swo
+*~
+photo_*.jpg
+Imagem do WhatsApp*.jpg
+
+# Installers and archives
+*.zip
+*.rar
+*.7z
+*.exe
+*.msi
+
+# Raw video media
+*.mp4
+*.mov
+*.MOV
+
+# Protected book files are provisioned outside Git
+private/pdfs/
+
+# Book assets are provisioned separately for the first GitHub push
+/livros/
+
+# Local administration and development artifacts
+admin-local.html
+css/admin.css
+js/admin.js
+css/*.before-*.css
+CHECKPOINT_TECNICO.md
+Untitled-1.txt
+server/db/seed-dev.sql

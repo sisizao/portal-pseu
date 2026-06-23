@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <radialGradient id="bgof" cx="48%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#050305"/>
+      <stop offset="40%" stop-color="#10090f"/>
+      <stop offset="100%" stop-color="#020204"/>
+    </radialGradient>
+    <linearGradient id="goldof" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7e4b1" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#b5883e" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glowof" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bgof)" />
+  <rect x="120" y="80" width="1680" height="920" rx="48" fill="rgba(255,255,255,0.02)" stroke="rgba(255,237,168,0.14)" stroke-width="2"/>
+  <ellipse cx="960" cy="460" rx="420" ry="220" fill="url(#goldof)" filter="url(#glowof)" opacity="0.3" />
+
+  <path d="M620,880 L580,760 C560,720 540,680 520,640 C480,560 434,500 372,468 C302,432 192,420 162,500 L120,740 L620,880 Z" fill="#070409" opacity="0.96"/>
+  <path d="M1300,880 L1260,760 C1240,720 1220,680 1200,640 C1160,560 1114,500 1052,468 C982,432 872,420 842,500 L800,740 L1300,880 Z" fill="#070409" opacity="0.96"/>
+
+  <g transform="translate(760 350)">
+    <path d="M160,0 C220,0 260,40 290,92 C320,144 320,208 300,276 C280,344 250,406 222,472 C196,532 168,590 120,646 C102,672 84,702 62,734 C48,754 36,782 30,818 C26,842 26,868 34,892 C48,940 80,978 120,1002 C180,1040 260,1044 314,1014 C380,976 420,904 420,820 C420,728 387,640 340,578 C310,542 282,502 256,462 C238,434 220,408 200,386 C176,358 156,334 142,302 C132,278 130,248 134,220 C142,178 154,132 160,88 Z" fill="#09070b"/>
+    <path d="M160,24 C196,56 224,92 242,132" stroke="rgba(255,240,210,0.16)" stroke-width="12" fill="none" opacity="0.6"/>
+  </g>
+
+  <path d="M500,210 C580,170 760,130 1060,170" stroke="#7c5c24" stroke-width="18" fill="none" opacity="0.22"/>
+  <path d="M480,290 C620,250 820,230 1120,290" stroke="#493039" stroke-width="16" fill="none" opacity="0.18"/>
+</svg>
