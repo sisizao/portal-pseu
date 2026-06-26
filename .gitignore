@@ -64,8 +64,36 @@ Imagem do WhatsApp*.jpg
 # Protected book files are provisioned outside Git
 private/pdfs/
 
-# Book assets are provisioned separately for the first GitHub push
-/livros/
+# Lightweight book assets for Railway staging
+/livros/*
+!/livros/capas do livros difinitivo/
+!/livros/o livro despertar/
+
+/livros/capas do livros difinitivo/*
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_13_53.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_14_12.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_14_28.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_14_42.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_32_15.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_46_36.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_47_11.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 18_59_17.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 19_12_41.png
+!/livros/capas do livros difinitivo/ChatGPT Image 7 de dez. de 2025, 19_17_12.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 01_13_24.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 01_28_23.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 01_51_43.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 02_01_32.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 02_20_15.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 02_27_02.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 02_36_38.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 03_03_12.png
+!/livros/capas do livros difinitivo/ChatGPT Image 8 de dez. de 2025, 02_46_53.png
+
+/livros/o livro despertar/*
+!/livros/o livro despertar/Design sem nome.pdf
+!/livros/o livro despertar/Dark_abstract_psychological_cinematic_image_verti-1775254780741.png
+!/livros/o livro despertar/Premium_cinematic_dark_ebook_page_vertical_45_fo-1775251290426.png
 
 # Local administration and development artifacts
 admin-local.html
