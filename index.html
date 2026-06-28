@@ -484,31 +484,40 @@
         <span class="brand-mark">P</span>
         <span class="brand-text">
           <strong>PSEU</strong>
-          <small>Arquivo reservado</small>
+          <small>Centro de Operações</small>
         </span>
       </a>
 
       <nav class="sidebar-nav" aria-label="Navegação principal">
-        <button class="nav-item is-active" type="button" data-nav="inicio">Presença</button>
-        <button class="nav-item" type="button" data-nav="biblioteca">Arquivos</button>
-        <button class="nav-item" type="button" data-nav="travessia">Sequência</button>
+        <button class="nav-item is-active" type="button" data-nav="inicio">
+          <span>Estação 01</span>
+          <strong>Centro</strong>
+        </button>
+        <button class="nav-item" type="button" data-nav="biblioteca">
+          <span>Estação 02</span>
+          <strong>Arquivos</strong>
+        </button>
+        <button class="nav-item" type="button" data-nav="travessia">
+          <span>Estação 03</span>
+          <strong>Missões</strong>
+        </button>
       </nav>
 
       <section class="sidebar-card sidebar-progress">
-        <span class="sidebar-label">Memória do arquivo</span>
+        <span class="sidebar-label">Registro do Observador</span>
         <div class="radial-progress" data-radial>
           <div class="radial-progress__inner">
             <strong data-total-progress>23%</strong>
-            <span>travessia reconhecida</span>
+            <span>status inicial</span>
           </div>
         </div>
         <p data-current-phase>Manual do Despertar.</p>
       </section>
 
       <section class="sidebar-card sidebar-note">
-        <span class="sidebar-label">Estado interno</span>
-        <strong>Sistema reservado</strong>
-        <p>O arquivo preserva sinais sem interromper o silêncio.</p>
+        <span class="sidebar-label">Operador</span>
+        <strong>Entrada reconhecida</strong>
+        <p>O Centro preserva sinais sem interromper a leitura.</p>
       </section>
     </aside>
 
@@ -521,14 +530,14 @@
         </div>
 
         <div class="topbar-identity">
-          <span class="topbar-identity__eyebrow">Acesso interno · conexão estável</span>
-          <strong>Arquivo PSEU</strong>
+          <span class="topbar-identity__eyebrow">Centro de Operações · conexão estável</span>
+          <strong>Operador PSEU</strong>
         </div>
 
         <div class="profile-chip">
           <span class="profile-chip__avatar" aria-hidden="true"></span>
           <div>
-            <strong>Entrada reconhecida</strong>
+            <strong>Operador reconhecido</strong>
             <small>Sessão preservada</small>
           </div>
           <button class="button button--ghost portal-logout" type="button" data-action="logout">Sair</button>
@@ -536,7 +545,7 @@
       </header>
       <div class="portal-entry-signal" aria-hidden="true">
         <span></span>
-        <small>Acesso interno reconhecido</small>
+        <small>Operador reconhecido</small>
       </div>
 
       <section class="hero-stage" id="inicio">
@@ -544,12 +553,12 @@
           <div class="spotlight-card__veil"></div>
           <div class="spotlight-card__content">
             <div class="spotlight-copy">
-              <span class="eyebrow">O sistema lembra</span>
+              <span class="eyebrow">Centro de Operações</span>
               <h1 data-hero-title>Manual do Despertar</h1>
               <p data-hero-copy>O primeiro portal da travessia. A entrada em que a obra se abre e o ritmo começa a tomar forma.</p>
               <div class="spotlight-actions">
                 <button class="button button--primary" type="button" data-action="open">Abrir arquivo</button>
-                <button class="button button--ghost" type="button" data-action="continue">Retomar leitura</button>
+                <button class="button button--ghost" type="button" data-action="continue">Retomar travessia</button>
               </div>
               <div class="spotlight-pulse" data-reader-pulse>
                 <span>Registro vivo</span>
@@ -570,27 +579,27 @@
 
         <aside class="hero-aside">
           <article class="signal-card signal-card--teal">
-            <span class="signal-card__label">Estado</span>
-            <strong>Reconhecido</strong>
-            <p>acesso interno estabilizado</p>
+            <span class="signal-card__label">Operador</span>
+            <strong>Ativo</strong>
+            <p>entrada interna estabilizada</p>
           </article>
           <article class="signal-card signal-card--violet">
-            <span class="signal-card__label">Memória</span>
-            <strong data-portal-memory-count>Silêncio</strong>
-            <p data-portal-memory-copy>nenhum arquivo tocado</p>
+            <span class="signal-card__label">Arquivos Pessoais</span>
+            <strong data-portal-memory-count>Em silêncio</strong>
+            <p data-portal-memory-copy>o primeiro sinal nascerá durante a leitura</p>
           </article>
           <article class="signal-card signal-card--amber">
-            <span class="signal-card__label">Presença</span>
-            <strong>Viva</strong>
-            <p>arquivo reservado em observação</p>
+            <span class="signal-card__label">Registro</span>
+            <strong>Vivo</strong>
+            <p>observação local preservada</p>
           </article>
         </aside>
       </section>
 
       <section class="recent-accesses" data-recent-accesses hidden>
         <div class="recent-accesses__heading">
-          <span class="eyebrow">Ecos preservados</span>
-          <p>O sistema mantém próximos apenas os arquivos que já reconheceram a sua passagem.</p>
+          <span class="eyebrow">Arquivos Pessoais</span>
+          <p>O Centro mantém próximos apenas os arquivos que já reconheceram a sua passagem.</p>
         </div>
         <div class="recent-accesses__list" data-recent-access-list></div>
       </section>
@@ -598,8 +607,8 @@
       <section class="section-block" id="biblioteca">
         <div class="section-heading">
           <div>
-            <span class="eyebrow">Arquivo consciente</span>
-            <h2>Fragmentos que ainda respiram</h2>
+            <span class="eyebrow">Arquivos Pessoais</span>
+            <h2>Arquivos da travessia</h2>
           </div>
           <p data-library-note>A coleção guarda marcas da travessia.</p>
         </div>
@@ -632,8 +641,13 @@
                 </div>
                 <button class="reader-arrow reader-arrow--ghost" type="button" data-reader-next aria-label="Próxima página">›</button>
               </div>
+              <div class="reader-hud__tools" aria-label="Controles de preservação">
+                <button class="reader-tool" type="button" data-reader-favorite aria-label="Preservar este arquivo" title="Preservar arquivo">☆</button>
+                <button class="reader-tool" type="button" data-reader-mark aria-label="Registrar esta página" title="Registrar página">⌖</button>
+              </div>
             </div>
           </div>
+          <div class="reader-toast" data-reader-toast role="status" aria-live="polite" hidden></div>
 
           <div class="reader-book" data-reader-book-stage data-mode="cover">
             <div class="reader-book__ambient"></div>
@@ -697,10 +711,32 @@
       <section class="section-block section-block--compact" id="travessia">
         <div class="journey-banner">
           <div>
-            <span class="eyebrow">Sequência oficial</span>
-            <h2>O portal conduz. O usuário atravessa.</h2>
+            <span class="eyebrow">Missões</span>
+            <h2>O Centro orienta. O Operador atravessa.</h2>
           </div>
-          <p>Do despertar à chave final, a leitura deve parecer uma experiência viva, silenciosa e progressiva.</p>
+          <p>Do despertar à chave final, cada retorno precisa parecer parte de uma operação viva.</p>
+        </div>
+
+        <div class="operation-grid" data-operation-grid>
+          <article class="operation-panel operation-panel--mission">
+            <span class="eyebrow">Missão ativa</span>
+            <h3 data-mission-title>Retomar arquivo inicial</h3>
+            <p data-mission-copy>O Centro aguarda o próximo avanço da travessia.</p>
+            <div class="mission-meter" aria-hidden="true">
+              <i data-mission-progress></i>
+            </div>
+            <button class="button button--primary" type="button" data-action="continue">Abrir missão</button>
+          </article>
+
+          <article class="operation-panel">
+            <span class="eyebrow">Arquivos Pessoais</span>
+            <div class="personal-archive-list" data-personal-archive-list></div>
+          </article>
+
+          <article class="operation-panel">
+            <span class="eyebrow">Registro do Observador</span>
+            <div class="observer-log" data-observer-log></div>
+          </article>
         </div>
       </section>
     </main>

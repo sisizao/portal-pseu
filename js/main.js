@@ -257,6 +257,14 @@
     navItems: document.querySelectorAll("[data-nav]"),
     actPills: document.querySelectorAll("[data-act-pill]"),
     focusFrame: document.querySelector("[data-focus-frame]"),
+    readerFavorite: document.querySelector("[data-reader-favorite]"),
+    readerMark: document.querySelector("[data-reader-mark]"),
+    readerToast: document.querySelector("[data-reader-toast]"),
+    missionTitle: document.querySelector("[data-mission-title]"),
+    missionCopy: document.querySelector("[data-mission-copy]"),
+    missionProgress: document.querySelector("[data-mission-progress]"),
+    personalArchiveList: document.querySelector("[data-personal-archive-list]"),
+    observerLog: document.querySelector("[data-observer-log]"),
   };
 
   const saved = readSavedState();
@@ -314,6 +322,7 @@
   setupPdfJs();
   selectBook(state.activeIndex, { preservePage: Boolean(saved), open: false, trackHistory: false });
   renderPortalMemory();
+  renderOperations();
   updateContinuityUi();
   revealBlocks();
   applyInitialFunnelPage();
@@ -420,6 +429,8 @@
     });
     els.readerControls?.addEventListener("focusin", () => showReaderControls(false));
     els.readerControls?.addEventListener("focusout", () => scheduleHideReaderControls());
+    els.readerFavorite?.addEventListener("click", handleReaderFavorite);
+    els.readerMark?.addEventListener("click", handleReaderBookmark);
 
     window.addEventListener("resize", syncFunnelMedia, { passive: true });
     window.addEventListener("orientationchange", syncFunnelMedia);
@@ -493,6 +504,18 @@
     });
 
     document.addEventListener("click", (event) => {
+      const observerButton = event.target.closest("[data-observer-book-index][data-observer-page]");
+      if (observerButton) {
+        const index = Number(observerButton.dataset.observerBookIndex);
+        const page = Number(observerButton.dataset.observerPage);
+        const book = books[index];
+        if (!book || !isBookReadable(book)) return;
+        selectBook(index, { open: false, trackHistory: true });
+        selectPage(page);
+        openReader();
+        return;
+      }
+
       const bookButton = event.target.closest("[data-book-index]");
       if (bookButton) {
         if (bookButton.closest(".preportal, .preportal-page")) {
@@ -605,6 +628,7 @@
       touchLastOpenedBook(book, state.activePage);
     }
     if (!fragmentScope) saveState();
+    renderOperations();
     updateContinuityUi();
     const readerAlreadyOpen = Boolean(els.readerLayout?.classList.contains("is-open"));
     if (readerAlreadyOpen) {
@@ -651,6 +675,7 @@
       touchLastOpenedBook(book, state.activePage);
       saveState();
     }
+    renderOperations();
     updateContinuityUi();
     if (targetPage !== previousPage) {
       trackAnalytics(targetPage > previousPage ? "reader_page_advanced" : "reader_page_returned", {
@@ -791,6 +816,7 @@
     }
     updateReaderDebugPanel(book, spread, null);
     updateProgressBadge(book);
+    updateReaderActions(book);
     refreshLibraryTiles();
 
     void queueReaderFrames(book, spread, compact);
@@ -854,21 +880,21 @@
       || Object.values(state.bookStates || {}).some((item) => Number(item?.page || 0) > 1)
     );
     if (!hasHistory) {
-      return "A coleção ainda observa em silêncio.";
+      return "STATUS · Aguardando primeira travessia.";
     }
     if (overallProgress <= 5) {
       if (state.continuity.maxFunnelStage >= 3) {
-        return "Alguns arquivos já reconheceram a sua passagem.";
+        return "O Centro reconheceu os primeiros sinais da sua passagem.";
       }
-      return "O primeiro fragmento já deixou uma marca.";
+      return "O primeiro fragmento deixou uma marca no Centro.";
     }
     if (overallProgress <= 25) {
-      return `A coleção ainda guarda ecos de ${book?.title || "um dos livros"}.`;
+      return `O Centro preserva ecos de ${book?.title || "um dos arquivos"}.`;
     }
     if (overallProgress <= 60) {
-      return "A biblioteca reconhece o seu retorno sem interromper o silêncio.";
+      return "O Centro reconhece o seu retorno sem interromper o silêncio.";
     }
-    return "Nem todo arquivo deve se abrir depressa.";
+    return "A travessia avançou. O Centro mantém os sinais sob observação.";
   }
 
   function touchLastOpenedBook(book, page) {
@@ -895,9 +921,11 @@
     const hasHistory = recent.length > 0;
 
     els.body.classList.toggle("has-reading-history", hasHistory);
-    if (els.portalMemoryCount) els.portalMemoryCount.textContent = hasHistory ? `${recent.length} sinais` : "Silêncio";
+    if (els.portalMemoryCount) els.portalMemoryCount.textContent = hasHistory ? `${recent.length} sinais` : "Em silêncio";
     if (els.portalMemoryCopy) {
-      els.portalMemoryCopy.textContent = hasHistory ? "arquivos próximos preservados" : "nenhum arquivo tocado";
+      els.portalMemoryCopy.textContent = hasHistory
+        ? "arquivos próximos preservados"
+        : "o primeiro sinal nascerá durante a leitura";
     }
     if (!els.recentAccesses || !els.recentAccessList) return;
 
@@ -934,6 +962,247 @@
     });
   }
 
+  function getMissionBook() {
+    const lastBook = books.find((book) => book.id === state.lastBookId && isBookReadable(book));
+    if (lastBook) return lastBook;
+    if (isBookReadable(books[state.activeIndex])) return books[state.activeIndex];
+    return books.find(isBookReadable) || null;
+  }
+
+  function getBookSavedPage(book) {
+    const storedPage = Number(state.bookStates?.[book?.id]?.page || book?.lastPage || 1);
+    return clamp(Number.isFinite(storedPage) ? storedPage : 1, 1, book?.pageCount || 999);
+  }
+
+  function getMissionState(book) {
+    if (!book) {
+      return {
+        progress: 0,
+        title: "Centro em silêncio",
+        copy: "A primeira missão aguarda uma passagem ativa.",
+      };
+    }
+
+    const page = getBookSavedPage(book);
+    const progress = getStoredBookProgress(book);
+    if (progress <= 0) {
+      return {
+        progress,
+        title: `Abrir ${book.title}`,
+        copy: "A primeira missão aguarda sua decisão. A travessia ainda não começou.",
+      };
+    }
+    if (progress < 100) {
+      return {
+        progress,
+        title: `Avançar em ${book.title}`,
+        copy: `Registro atual preservado na página ${padPage(page)}. A missão segue aberta.`,
+      };
+    }
+    return {
+      progress,
+      title: `Fechar registro de ${book.title}`,
+      copy: "A leitura alcançou o limiar final. O próximo arquivo disponível pode assumir a travessia.",
+    };
+  }
+
+  function getPersonalArchiveEntries() {
+    const entries = [];
+    const seen = new Set();
+    const addBook = (book, source, page = null, timestamp = 0) => {
+      if (!book?.id || seen.has(book.id) || !isBookReadable(book)) return;
+      seen.add(book.id);
+      entries.push({
+        book,
+        source,
+        page: page || getBookSavedPage(book),
+        timestamp,
+      });
+    };
+
+    (state.favoriteBooks || []).forEach((bookId) => {
+      addBook(books.find((book) => book.id === bookId), "Arquivo preservado", null, Number.MAX_SAFE_INTEGER);
+    });
+
+    (state.lastOpenedBooks || []).forEach((entry) => {
+      addBook(books.find((book) => book.id === entry.bookId), "Retorno recente", entry.page, entry.timestamp);
+    });
+
+    const bookmarks = getObserverEntries();
+    bookmarks.forEach((entry) => addBook(entry.book, "Observação de campo", entry.page, entry.timestamp));
+
+    return entries
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+      .slice(0, 4);
+  }
+
+  function getObserverEntries() {
+    return Object.entries(state.bookmarks || {})
+      .flatMap(([bookId, items]) => {
+        const book = books.find((candidate) => candidate.id === bookId);
+        if (!book || !Array.isArray(items) || !isBookReadable(book)) return [];
+        return items.map((item) => ({
+          ...item,
+          book,
+          page: clamp(Number(item.page || 1), 1, book.pageCount || 999),
+          timestamp: Number(item.timestamp || 0),
+        }));
+      })
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5);
+  }
+
+  function appendOperationEmpty(parent, copy) {
+    const node = document.createElement("p");
+    node.className = "operation-empty";
+    node.textContent = copy;
+    parent.appendChild(node);
+  }
+
+  function buildOperationButton(entry, className) {
+    const index = books.indexOf(entry.book);
+    const progress = getBookProgress(entry.book, entry.page);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = className;
+    button.dataset.observerBookIndex = String(index);
+    button.dataset.observerPage = String(entry.page || 1);
+    button.setAttribute("aria-label", `Retomar ${entry.book.title} na página ${padPage(entry.page || 1)}`);
+
+    const number = document.createElement("span");
+    number.className = `${className}__number`;
+    number.textContent = String(entry.book.number || index + 1).padStart(2, "0");
+
+    const copy = document.createElement("span");
+    copy.className = `${className}__copy`;
+    const title = document.createElement("strong");
+    title.textContent = entry.book.title;
+    const meta = document.createElement("small");
+    meta.textContent = `${entry.source || entry.label || "Registro"} · p. ${padPage(entry.page || 1)} · ${progress}%`;
+    copy.append(title, meta);
+
+    button.append(number, copy);
+    return button;
+  }
+
+  function renderOperations() {
+    const missionBook = getMissionBook();
+    const mission = getMissionState(missionBook);
+
+    if (els.missionTitle) els.missionTitle.textContent = mission.title;
+    if (els.missionCopy) els.missionCopy.textContent = mission.copy;
+    if (els.missionProgress) els.missionProgress.style.width = `${mission.progress}%`;
+
+    if (els.personalArchiveList) {
+      els.personalArchiveList.innerHTML = "";
+      const entries = getPersonalArchiveEntries();
+      if (!entries.length) {
+        appendOperationEmpty(els.personalArchiveList, "Seu primeiro Arquivo Pessoal nascerá durante a leitura.");
+      } else {
+        entries.forEach((entry) => {
+          els.personalArchiveList.appendChild(buildOperationButton(entry, "personal-archive"));
+        });
+      }
+    }
+
+    if (els.observerLog) {
+      els.observerLog.innerHTML = "";
+      const entries = getObserverEntries();
+      if (!entries.length) {
+        appendOperationEmpty(els.observerLog, "Nenhuma observação registrada nesta travessia.");
+      } else {
+        entries.forEach((entry) => {
+          const button = buildOperationButton({
+            ...entry,
+            source: entry.label || "Observação de campo",
+          }, "observer-entry");
+          els.observerLog.appendChild(button);
+        });
+      }
+    }
+  }
+
+  function hasCurrentPageBookmark(book) {
+    if (!book?.id) return false;
+    const bookmarks = state.bookmarks?.[book.id] || [];
+    return bookmarks.some((item) => Number(item.page) === Number(state.activePage));
+  }
+
+  function updateReaderActions(book) {
+    const canPersist = Boolean(book?.id && !isFragmentReaderScope(book) && isBookReadable(book));
+    const isFavorite = canPersist && state.favoriteBooks.includes(book.id);
+    const isMarked = canPersist && hasCurrentPageBookmark(book);
+
+    if (els.readerFavorite) {
+      els.readerFavorite.disabled = !canPersist;
+      els.readerFavorite.textContent = isFavorite ? "★" : "☆";
+      els.readerFavorite.classList.toggle("is-active", isFavorite);
+      els.readerFavorite.setAttribute("aria-pressed", isFavorite ? "true" : "false");
+      els.readerFavorite.title = isFavorite ? "Arquivo Pessoal preservado" : "Preservar nos Arquivos Pessoais";
+      els.readerFavorite.setAttribute("aria-label", isFavorite ? "Arquivo Pessoal preservado" : "Preservar nos Arquivos Pessoais");
+    }
+
+    if (els.readerMark) {
+      els.readerMark.disabled = !canPersist;
+      els.readerMark.textContent = isMarked ? "◆" : "⌖";
+      els.readerMark.classList.toggle("is-active", isMarked);
+      els.readerMark.setAttribute("aria-pressed", isMarked ? "true" : "false");
+      els.readerMark.title = isMarked ? "Observação registrada" : "Registrar no Observador";
+      els.readerMark.setAttribute("aria-label", isMarked ? "Observação registrada" : "Registrar no Observador");
+    }
+  }
+
+  function showReaderToast(message) {
+    if (!els.readerToast) return;
+    els.readerToast.textContent = message;
+    els.readerToast.hidden = false;
+    els.readerToast.classList.add("is-visible");
+    window.clearTimeout(showReaderToast.timer);
+    showReaderToast.timer = window.setTimeout(() => {
+      els.readerToast.classList.remove("is-visible");
+      els.readerToast.hidden = true;
+    }, 2200);
+  }
+
+  function handleReaderFavorite(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const book = getCurrentBook();
+    if (!book || !isBookReadable(book) || isFragmentReaderScope(book)) return;
+    const favorites = toggleFavoriteBook(book.id);
+    const isFavorite = favorites.includes(book.id);
+    updateReaderActions(book);
+    renderOperations();
+    showReaderToast(isFavorite ? "Arquivo Pessoal preservado." : "Arquivo devolvido ao silêncio.");
+    trackAnalytics("reader_favorite_toggled", {
+      section: "reader",
+      page: `reader-page-${state.activePage}`,
+      bookId: book.id,
+      details: { active: isFavorite },
+    });
+  }
+
+  function handleReaderBookmark(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const book = getCurrentBook();
+    if (!book || !isBookReadable(book) || isFragmentReaderScope(book)) return;
+    const chapter = chapterForPage(book, state.activePage);
+    const label = chapter?.title
+      ? `${chapter.title} · página ${padPage(state.activePage)}`
+      : `Página ${padPage(state.activePage)}`;
+    setBookmark(book.id, state.activePage, label);
+    updateReaderActions(book);
+    renderOperations();
+    showReaderToast("Observação registrada no campo.");
+    trackAnalytics("reader_observer_marked", {
+      section: "reader",
+      page: `reader-page-${state.activePage}`,
+      bookId: book.id,
+      details: { page: state.activePage },
+    });
+  }
+
   function toggleFavoriteBook(bookId) {
     if (!bookId) return state.favoriteBooks;
     const hasBook = state.favoriteBooks.includes(bookId);
@@ -941,6 +1210,7 @@
       ? state.favoriteBooks.filter((id) => id !== bookId)
       : [bookId, ...state.favoriteBooks].slice(0, 12);
     saveState();
+    renderOperations();
     return state.favoriteBooks;
   }
 
@@ -953,6 +1223,7 @@
     };
     state.bookmarks[bookId] = [...(state.bookmarks[bookId] || []).filter((item) => item.page !== entry.page), entry].slice(0, 24);
     saveState();
+    renderOperations();
     return state.bookmarks[bookId];
   }
 
@@ -2774,6 +3045,7 @@
     renderLibrary();
     updateProgressBadge(getCurrentBook());
     renderPortalMemory();
+    renderOperations();
     updateContinuityUi();
     if (els.readerLayout?.classList.contains("is-open")) {
       updateReader(getCurrentBook());
