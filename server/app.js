@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const session = require("express-session");
 const connectPgSimple = require("connect-pg-simple");
@@ -40,6 +41,66 @@ const publicFragmentPdfs = new Map([
   ],
 ]);
 
+function sendPublicFragmentFallback(res) {
+  return res.status(404).type("html").send(`<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fragmento em silêncio</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #050507;
+        color: rgba(247, 240, 223, 0.88);
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        background:
+          radial-gradient(circle at 50% 28%, rgba(211, 167, 90, 0.16), transparent 18rem),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 34%),
+          #050507;
+      }
+
+      main {
+        max-width: 520px;
+        border: 1px solid rgba(211, 167, 90, 0.24);
+        padding: clamp(24px, 6vw, 44px);
+        background: rgba(4, 4, 7, 0.72);
+      }
+
+      span {
+        display: block;
+        margin-bottom: 12px;
+        color: rgba(211, 167, 90, 0.82);
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      p {
+        margin: 0;
+        line-height: 1.55;
+        letter-spacing: 0.03em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span>Fragmento em silêncio</span>
+      <p>O fragmento público ainda não respondeu. O Centro preservou este eco para quando o arquivo voltar ao ar.</p>
+    </main>
+  </body>
+</html>`);
+}
+
 function sendPublicFragmentPdf(req, res, next) {
   const assetPath = decodeURIComponent(req.path || "");
   const filePath = publicFragmentPdfs.get(assetPath);
@@ -47,6 +108,10 @@ function sendPublicFragmentPdf(req, res, next) {
 
   if (!filePath.startsWith(projectRoot)) {
     return res.status(403).json({ error: "asset_forbidden" });
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return sendPublicFragmentFallback(res);
   }
 
   res.setHeader("Content-Type", "application/pdf");

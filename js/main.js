@@ -371,6 +371,13 @@
     els.recoveredArchiveVideo?.addEventListener("ended", handleRecoveredArchiveEnded);
     els.recoveredArchiveVideo?.addEventListener("timeupdate", handleRecoveredArchiveTimeUpdate);
 
+    document.querySelectorAll(".call-official__video, .travessia-entry-background-video, .travessia-entry-artifact__video").forEach((video) => {
+      video.addEventListener("error", () => markPassiveVideoUnavailable(video));
+      video.querySelectorAll("source").forEach((source) => {
+        source.addEventListener("error", () => markPassiveVideoUnavailable(video));
+      });
+    });
+
     els.funnelVideos.forEach((video) => {
       const key = video.dataset.funnelVideo;
       const stage = video.closest(".funnel-vsl-stage");
@@ -393,7 +400,11 @@
         updateFunnelControls(key);
       });
       video.addEventListener("timeupdate", () => rememberFunnelVideo(video));
-      video.addEventListener("loadedmetadata", () => updateContinuityUi());
+      video.addEventListener("loadedmetadata", () => {
+        setFunnelVideoUnavailable(video, false);
+        updateContinuityUi();
+      });
+      video.addEventListener("error", () => markFunnelVideoUnavailable(video));
       stage?.addEventListener("pointermove", () => showFunnelControls(key));
       stage?.addEventListener("pointerdown", () => showFunnelControls(key));
       stage?.addEventListener("pointerleave", () => scheduleHideFunnelControls(key, 900));
@@ -1552,9 +1563,7 @@
       const sourceUrl = await resolvePdfSource(book);
       if (token !== state.renderToken) return;
       if (!sourceUrl) {
-        setReaderError(`Fonte PDF ausente para ${book?.title || "o livro atual"}.`);
-        els.body.dataset.loading = "false";
-        els.readerBookStage?.classList.remove("is-turning");
+        showReaderSourceFallback(requests, book, token, "source");
         return;
       }
 
@@ -1573,6 +1582,10 @@
       } catch (error) {
         if (token !== state.renderToken) return;
         pdfDebug("WARNING", "PDF.js controlled fallback", `${book.id} | ${error?.message || error}`);
+        if (shouldUseControlledPdfFallback(book)) {
+          showReaderSourceFallback(requests, book, token, "source");
+          return;
+        }
         await renderNativePdfFrames(requests, book, token, sourceUrl);
       }
       return;
@@ -1594,9 +1607,7 @@
     if (token !== state.renderToken) return false;
 
     if (!resolvedSource) {
-      setReaderError(`Fonte PDF ausente para ${book?.title || "o livro atual"}.`);
-      els.body.dataset.loading = "false";
-      els.readerBookStage?.classList.remove("is-turning");
+      showReaderSourceFallback(requests, book, token, "source");
       return false;
     }
 
@@ -1751,14 +1762,11 @@
     } catch (error) {
       if (token !== state.renderToken) return;
       const label = page === 1 ? "capa" : `página ${page}`;
-      setReaderError(`PDF.js falhou ao renderizar ${label}.`);
+      const message = readerFallbackMessage(book, page, "render");
+      setReaderError(message);
       window.PSEU_BOOK_DIAGNOSTICS?.markFrameError?.(book, page, request?.role || "", error?.message || "pdfjs");
-      const fallback = shell.querySelector?.("[data-reader-fallback]");
-      if (fallback) {
-        fallback.textContent = `Falha ao renderizar ${label}.`;
-        fallback.hidden = false;
-      }
-      shell.classList.add("is-blank");
+      pdfDebug("WARNING", `render fallback for ${label}`, error?.message || "pdfjs");
+      showReaderFallback(shell, book, page, { message, context: "render" });
       state.pendingFrames = Math.max(0, state.pendingFrames - 1);
       if (state.pendingFrames === 0) {
         els.body.dataset.loading = "false";
@@ -1869,6 +1877,100 @@
     return FRAGMENT_PAGE_MAP[Number(page)] || 1;
   }
 
+  function shouldUseControlledPdfFallback(book) {
+    return Boolean(isFragmentReaderScope(book) || getProtectedPdfEndpoint(book));
+  }
+
+  function readerFallbackMessage(book, page, context = "load") {
+    if (isFragmentReaderScope(book)) {
+      return "O fragmento público ainda não respondeu. O Centro preservou este eco para quando o arquivo voltar ao ar.";
+    }
+    if (getProtectedPdfEndpoint(book) || (isProtectedPortalRoute() && book?.canRead)) {
+      return "Arquivo protegido ainda não provisionado.";
+    }
+    if (context === "source") {
+      return "O arquivo ainda não foi provisionado pelo Centro.";
+    }
+    return page === 1
+      ? "A capa ainda não respondeu ao Centro."
+      : "Esta página ainda não respondeu ao Centro.";
+  }
+
+  function showReaderFallback(shell, book, page, options = {}) {
+    if (!shell) return;
+    const message = options.message || readerFallbackMessage(book, page, options.context);
+    shell.dataset.renderKind = "fallback";
+    shell.classList.add("is-blank");
+    shell.querySelectorAll(".reader-page-media, .reader-page-pdf, .reader-page-canvas").forEach((node) => {
+      node.style.opacity = "0";
+      node.style.display = "none";
+    });
+    const fallback = shell.querySelector?.("[data-reader-fallback]");
+    if (fallback) {
+      fallback.textContent = message;
+      fallback.hidden = false;
+    }
+  }
+
+  function completeReaderFallbackFrame(frame) {
+    if (frame) {
+      frame.dataset.loaded = "fallback";
+      frame.style.opacity = "0";
+      frame.style.display = "none";
+    }
+    state.pendingFrames = Math.max(0, state.pendingFrames - 1);
+    if (state.pendingFrames === 0) {
+      els.body.dataset.loading = "false";
+      els.readerBookStage?.classList.remove("is-turning");
+    }
+  }
+
+  function showReaderSourceFallback(requests, book, token, context = "source") {
+    if (token !== state.renderToken) return false;
+    const visibleRequests = (requests || []).filter((request) => request?.visible && request?.page && request?.shell);
+    const message = readerFallbackMessage(book, visibleRequests[0]?.page, context);
+    setReaderError(message);
+    visibleRequests.forEach((request) => {
+      if (request.frame) {
+        request.frame.dataset.loaded = "fallback";
+        request.frame.style.opacity = "0";
+        request.frame.style.display = "none";
+      }
+      showReaderFallback(request.shell, book, request.page, { message, context });
+    });
+    state.pendingFrames = 0;
+    els.body.dataset.loading = "false";
+    els.readerBookStage?.classList.remove("is-turning");
+    updateReaderDebugPanel(book, null, null);
+    return true;
+  }
+
+  function nativePdfFrameHasFallbackResponse(frame) {
+    if (!frame?.classList?.contains("reader-page-pdf")) return false;
+    const source = frame.dataset.pageSource || "";
+    const controlledSource = source.includes("/fragmentos/")
+      || source.includes("/api/books/")
+      || source.includes("/livros/o%20livro%20despertar/");
+    if (!controlledSource) return false;
+    try {
+      const text = frame.contentDocument?.body?.textContent?.trim() || "";
+      return /pdf_not_found|pdf_not_mapped|not_found|asset_forbidden|internal_error|Cannot GET|Fragmento em silêncio|fragmento público ainda não respondeu/i.test(text);
+    } catch {
+      return false;
+    }
+  }
+
+  function showReaderFrameFallback(frame, book, page, context = "load") {
+    if (!frame || frame.dataset.loaded === "fallback") return;
+    const shell = frame.closest?.(".reader-page-shell");
+    const message = readerFallbackMessage(book, page, context);
+    setReaderError(message);
+    window.PSEU_BOOK_DIAGNOSTICS?.markFrameError?.(book, page, frame?.dataset?.readerRole || "", message);
+    updateReaderDebugPanel(book, null, frame);
+    showReaderFallback(shell, book, page, { message, context });
+    completeReaderFallbackFrame(frame);
+  }
+
   function getProtectedPdfEndpoint(book) {
     if (!book || isFragmentReaderScope(book)) return "";
     if (!isProtectedPortalRoute()) return "";
@@ -1884,23 +1986,19 @@
     const token = Number(frame?.dataset.renderToken || "0");
     window.setTimeout(() => {
       if (token !== state.renderToken) return;
-      if (!frame || frame.dataset.loaded === "true") return;
+      if (!frame || frame.dataset.loaded === "true" || frame.dataset.loaded === "fallback") return;
       const label = page === 1 ? "capa" : `página ${page}`;
       if (PDF_DEBUG) {
         setReaderError(`Página não confirmou carregamento para ${label}. URL: ${pageUrl}`);
       } else if (!state.readerError) {
-        setReaderError("A leitura está a ajustar o enquadramento.");
+        setReaderError(readerFallbackMessage(book, page, "load"));
       }
       window.PSEU_BOOK_DIAGNOSTICS?.markFrameError?.(book, page, frame?.dataset?.readerRole || "", `URL: ${pageUrl}`);
       updateReaderDebugPanel(book, null, frame);
       if (frame?.closest) {
         const shell = frame.closest(".reader-page-shell");
-        shell?.classList.add("is-blank");
-        const fallback = shell?.querySelector?.("[data-reader-fallback]");
-        if (fallback) {
-          fallback.textContent = PDF_DEBUG ? `Falha ao carregar ${label}.` : "A leitura está a carregar.";
-          fallback.hidden = false;
-        }
+        const message = readerFallbackMessage(book, page, "load");
+        showReaderFallback(shell, book, page, { message, context: "load" });
       }
       state.pendingFrames = Math.max(0, state.pendingFrames - 1);
       if (state.pendingFrames === 0) {
@@ -1914,6 +2012,13 @@
     if (!frame || (frame.dataset.loaded === "true" && !options.force)) return;
     const token = Number(frame?.dataset.renderToken || "0");
     if (token !== state.renderToken) return;
+
+    const book = getCurrentBook();
+    const visiblePage = Number(frame?.dataset?.visiblePage || "0");
+    if (nativePdfFrameHasFallbackResponse(frame)) {
+      showReaderFrameFallback(frame, book, visiblePage, "source");
+      return;
+    }
 
     frame.dataset.loaded = "true";
     frame.style.opacity = "1";
@@ -1950,7 +2055,7 @@
         els.readerDebug?.classList.remove("is-visible");
       }
     }
-    window.PSEU_BOOK_DIAGNOSTICS?.markFrameLoaded?.(getCurrentBook(), Number(frame?.dataset?.visiblePage || "0"), frame?.dataset?.readerRole || "");
+    window.PSEU_BOOK_DIAGNOSTICS?.markFrameLoaded?.(book, visiblePage, frame?.dataset?.readerRole || "");
     pdfDebug("CHECK", `frame visible`, `${frame?.dataset?.readerRole || "?"} | page=${frame?.dataset?.visiblePage || "?"}`);
   }
 
@@ -2045,21 +2150,14 @@
   function handleReaderFrameError(event) {
     const frame = event.currentTarget;
     const page = Number(frame?.dataset.visiblePage || "0");
-    setReaderError(`Falha ao carregar página ${page || "desconhecida"}.`);
+    const book = getCurrentBook();
+    const message = readerFallbackMessage(book, page, "load");
+    setReaderError(message);
     window.PSEU_BOOK_DIAGNOSTICS?.markFrameError?.(getCurrentBook(), page, frame?.dataset?.readerRole || "", frame?.dataset?.pageSource || "");
     updateReaderDebugPanel(getCurrentBook(), null, frame);
     const shell = frame?.closest?.(".reader-page-shell");
-    shell?.classList.add("is-blank");
-    const fallback = shell?.querySelector?.("[data-reader-fallback]");
-    if (fallback) {
-      fallback.textContent = `Falha ao carregar página ${page || "desconhecida"}.`;
-      fallback.hidden = false;
-    }
-    state.pendingFrames = Math.max(0, state.pendingFrames - 1);
-    if (state.pendingFrames === 0) {
-      els.body.dataset.loading = "false";
-      els.readerBookStage?.classList.remove("is-turning");
-    }
+    showReaderFallback(shell, book, page, { message, context: "load" });
+    completeReaderFallbackFrame(frame);
   }
 
   function setReaderError(message) {
@@ -2541,6 +2639,10 @@
     const video = document.querySelector(`[data-funnel-video="${key}"]`);
     if (!video) return;
     video.closest(".funnel-vsl-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (video.dataset.available === "false" || video.closest(".funnel-vsl-card")?.classList.contains("is-video-unavailable")) {
+      markFunnelVideoUnavailable(video);
+      return;
+    }
     restoreFunnelVideoPoint(video);
     showFunnelControls(key);
     if (video.paused) toggleFunnelVideo(key);
@@ -3612,6 +3714,49 @@
     target?.scrollIntoView?.({ behavior: "smooth", block: "center" });
   }
 
+  function setFunnelVideoUnavailable(video, unavailable = true) {
+    if (!video) return;
+    const key = video.dataset.funnelVideo;
+    const config = FUNNEL_MEDIA[key];
+    const stage = video.closest(".funnel-vsl-stage");
+    const card = video.closest(".funnel-vsl-card");
+    video.dataset.available = unavailable ? "false" : "true";
+    stage?.classList.toggle("is-video-unavailable", unavailable);
+    card?.classList.toggle("is-video-unavailable", unavailable);
+    if (card && unavailable) card.classList.remove("is-playing");
+
+    const playButton = document.querySelector(`[data-funnel-play="${key}"]`);
+    if (playButton) {
+      playButton.disabled = unavailable;
+      playButton.setAttribute("aria-disabled", unavailable ? "true" : "false");
+      playButton.setAttribute(
+        "aria-label",
+        unavailable ? "Transmissão ainda não provisionada" : `Reproduzir ${config?.title || "VSL"}`
+      );
+    }
+
+    document.querySelectorAll(`[data-funnel-command][data-funnel-target="${key}"]`).forEach((button) => {
+      button.disabled = unavailable;
+      button.setAttribute("aria-disabled", unavailable ? "true" : "false");
+    });
+
+    const volumeInput = document.querySelector(`[data-funnel-volume="${key}"]`);
+    if (volumeInput) volumeInput.disabled = unavailable;
+  }
+
+  function markFunnelVideoUnavailable(video) {
+    if (!video) return;
+    video.pause?.();
+    setFunnelVideoUnavailable(video, true);
+    updateFunnelControls(video.dataset.funnelVideo);
+  }
+
+  function markPassiveVideoUnavailable(video) {
+    if (!video) return;
+    video.pause?.();
+    video.classList.add("is-video-unavailable");
+  }
+
   function syncFunnelMedia() {
     const compact = window.matchMedia("(max-width: 800px)").matches;
     const media = {
@@ -3623,7 +3768,10 @@
       const key = video.dataset.funnelVideo;
       const config = FUNNEL_MEDIA[key];
       if (!config) return;
-      video.poster = toUrl(media[key]);
+      const posterUrl = toUrl(media[key]);
+      video.poster = posterUrl;
+      video.closest(".funnel-vsl-stage")?.style.setProperty("--funnel-poster", `url("${posterUrl}")`);
+      setFunnelVideoUnavailable(video, Boolean(video.error));
       if (!video.src) {
         video.src = toUrl(config.video);
       }
@@ -3640,6 +3788,10 @@
     const config = FUNNEL_MEDIA[key];
     const video = document.querySelector(`[data-funnel-video="${key}"]`);
     if (!config || !video) return;
+    if (video.dataset.available === "false" || video.closest(".funnel-vsl-card")?.classList.contains("is-video-unavailable")) {
+      markFunnelVideoUnavailable(video);
+      return;
+    }
 
     els.funnelVideos.forEach((other) => {
       if (other !== video) {
@@ -3667,6 +3819,10 @@
   function handleFunnelCommand(command, key) {
     const video = document.querySelector(`[data-funnel-video="${key}"]`);
     if (!video) return;
+    if (video.dataset.available === "false" || video.closest(".funnel-vsl-card")?.classList.contains("is-video-unavailable")) {
+      markFunnelVideoUnavailable(video);
+      return;
+    }
 
     if (command === "toggle") {
       toggleFunnelVideo(key);
@@ -3695,7 +3851,12 @@
     const video = document.querySelector(`[data-funnel-video="${key}"]`);
     if (!video) return;
     const toggleButton = document.querySelector(`[data-funnel-command="toggle"][data-funnel-target="${key}"]`);
-    if (toggleButton) toggleButton.textContent = video.paused ? "Reproduzir" : "Pausar";
+    if (toggleButton) {
+      const unavailable = video.dataset.available === "false" || video.closest(".funnel-vsl-card")?.classList.contains("is-video-unavailable");
+      toggleButton.textContent = unavailable ? "Indisponível" : video.paused ? "Reproduzir" : "Pausar";
+      toggleButton.disabled = unavailable;
+      toggleButton.setAttribute("aria-disabled", unavailable ? "true" : "false");
+    }
   }
 
   function updateChapterSelection() {
