@@ -1761,6 +1761,11 @@ body.is-portal-ready .journey-banner {
   color: rgba(255, 255, 255, 0.76);
 }
 
+.spotlight-meta small {
+  color: rgba(236, 228, 211, 0.64);
+  line-height: 1.45;
+}
+
 .progress-bar {
   height: 8px;
   border-radius: 999px;
@@ -1900,6 +1905,65 @@ body.is-portal-ready .journey-banner {
   background: linear-gradient(90deg, rgba(211, 167, 90, 0.96), rgba(65, 215, 199, 0.78));
   box-shadow: 0 0 18px rgba(65, 215, 199, 0.18);
   transition: width 0.28s ease;
+}
+
+.mission-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.mission-node {
+  appearance: none;
+  width: 100%;
+  border: 1px solid rgba(211, 167, 90, 0.12);
+  border-radius: 0;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.06), transparent 78%),
+    rgba(0, 0, 0, 0.18);
+  color: rgba(243, 240, 231, 0.9);
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+}
+
+.mission-node:hover,
+.mission-node:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(241, 209, 132, 0.34);
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.12), rgba(65, 215, 199, 0.04)),
+    rgba(0, 0, 0, 0.2);
+}
+
+.mission-node:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.mission-node span {
+  color: rgba(241, 209, 132, 0.58);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mission-node strong {
+  color: rgba(243, 240, 231, 0.92);
+  font-size: 0.9rem;
+}
+
+.mission-node small {
+  color: rgba(236, 228, 211, 0.56);
+  line-height: 1.35;
+}
+
+.mission-node--current {
+  border-color: rgba(241, 209, 132, 0.24);
 }
 
 .personal-archive-list,

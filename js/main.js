@@ -245,6 +245,11 @@
     recentAccessList: document.querySelector("[data-recent-access-list]"),
     portalMemoryCount: document.querySelector("[data-portal-memory-count]"),
     portalMemoryCopy: document.querySelector("[data-portal-memory-copy]"),
+    lastActivityTitle: document.querySelector("[data-last-activity-title]"),
+    lastActivityCopy: document.querySelector("[data-last-activity-copy]"),
+    lastRecordTitle: document.querySelector("[data-last-record-title]"),
+    lastRecordCopy: document.querySelector("[data-last-record-copy]"),
+    journeyProgressCopy: document.querySelector("[data-journey-progress-copy]"),
     continuityWhisper: document.querySelector("[data-continuity-whisper]"),
     continuityEyebrow: document.querySelector("[data-continuity-eyebrow]"),
     continuityCopy: document.querySelector("[data-continuity-copy]"),
@@ -278,6 +283,7 @@
     missionTitle: document.querySelector("[data-mission-title]"),
     missionCopy: document.querySelector("[data-mission-copy]"),
     missionProgress: document.querySelector("[data-mission-progress]"),
+    missionStack: document.querySelector("[data-mission-stack]"),
     personalArchiveList: document.querySelector("[data-personal-archive-list]"),
     observerLog: document.querySelector("[data-observer-log]"),
     myRecordsList: document.querySelector("[data-my-records-list]"),
@@ -979,6 +985,52 @@
     return "A travessia avançou. O Centro mantém os sinais sob observação.";
   }
 
+  function getJourneyProgressNarrative(overallProgress) {
+    if (overallProgress <= 0) return "STATUS · Aguardando primeira travessia.";
+    if (overallProgress <= 10) return "Primeiros sinais detectados. O Centro começou a reconhecer o Operador.";
+    if (overallProgress <= 35) return "Travessia em abertura. Os arquivos já deixaram marcas no campo.";
+    if (overallProgress <= 70) return "Operação em profundidade. O retorno ao Centro já não é casual.";
+    if (overallProgress < 100) return "Limiar avançado. A travessia se aproxima da chave final.";
+    return "Travessia integral preservada. O Centro mantém o ciclo sob observação.";
+  }
+
+  function renderDashboardSignals(book = getCurrentBook(), overallProgress = getLibraryProgress()) {
+    const latestActivity = [...(state.lastOpenedBooks || [])]
+      .map((entry) => ({
+        ...entry,
+        book: books.find((candidate) => candidate.id === entry.bookId),
+      }))
+      .filter((entry) => entry.book)
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))[0];
+    const latestRecord = [...getTraversalNotebookRecords()]
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))[0];
+
+    if (els.journeyProgressCopy) {
+      els.journeyProgressCopy.textContent = getJourneyProgressNarrative(overallProgress);
+    }
+
+    if (els.lastActivityTitle && els.lastActivityCopy) {
+      if (latestActivity) {
+        const progress = getBookProgress(latestActivity.book, latestActivity.page);
+        els.lastActivityTitle.textContent = progress > 0 ? `${progress}%` : "Entrada";
+        els.lastActivityCopy.textContent = `${latestActivity.book.title} · p. ${padPage(latestActivity.page || 1)} · ${formatTraversalNotebookDate(latestActivity.timestamp) || "agora"}`;
+      } else {
+        els.lastActivityTitle.textContent = "Aguardando";
+        els.lastActivityCopy.textContent = book ? `${book.title} ainda não abriu um sinal.` : "entrada interna estabilizada";
+      }
+    }
+
+    if (els.lastRecordTitle && els.lastRecordCopy) {
+      if (latestRecord) {
+        els.lastRecordTitle.textContent = `p. ${padPage(latestRecord.page || 1)}`;
+        els.lastRecordCopy.textContent = `${latestRecord.book.title} · ${latestRecord.dateLabel}`;
+      } else {
+        els.lastRecordTitle.textContent = "Em silêncio";
+        els.lastRecordCopy.textContent = "o primeiro registro nascerá no Caderno";
+      }
+    }
+  }
+
   function touchLastOpenedBook(book, page) {
     if (!book?.id) return;
     const entry = {
@@ -990,6 +1042,7 @@
     state.lastOpenedAt = entry.timestamp;
     state.lastOpenedBooks = [entry, ...(state.lastOpenedBooks || []).filter((item) => item?.bookId !== book.id)].slice(0, 8);
     renderPortalMemory();
+    renderDashboardSignals(book);
   }
 
   function renderPortalMemory() {
@@ -1086,6 +1139,77 @@
       title: `Fechar registro de ${book.title}`,
       copy: "A leitura alcançou o limiar final. O próximo arquivo disponível pode assumir a travessia.",
     };
+  }
+
+  function getCompletedMissionBook(currentBook) {
+    const completed = books
+      .filter((book) => isBookReadable(book) && getStoredBookProgress(book) >= 100)
+      .sort((a, b) => Number(b.number || 0) - Number(a.number || 0));
+    return completed.find((book) => book.id !== currentBook?.id) || completed[0] || null;
+  }
+
+  function getNextMissionBook(currentBook) {
+    const currentNumber = Number(currentBook?.number || 0);
+    return books.find((book) => (
+      isBookReadable(book)
+      && book.id !== currentBook?.id
+      && Number(book.number || 0) > currentNumber
+      && getStoredBookProgress(book) <= 0
+    )) || books.find((book) => isBookReadable(book) && book.id !== currentBook?.id && getStoredBookProgress(book) < 100) || null;
+  }
+
+  function getMissionTimeline(currentBook, currentMission) {
+    const nextBook = getNextMissionBook(currentBook);
+    const completedBook = getCompletedMissionBook(currentBook);
+    return [
+      {
+        slot: "current",
+        label: "Missão atual",
+        title: currentMission.title,
+        copy: currentMission.copy,
+        book: currentBook,
+        page: currentBook ? getBookSavedPage(currentBook) : 1,
+      },
+      {
+        slot: "next",
+        label: "Próxima missão",
+        title: nextBook ? `Preparar ${nextBook.title}` : "Próxima missão em silêncio",
+        copy: nextBook ? "O Centro preserva este arquivo para o próximo avanço." : "Nenhum arquivo seguinte respondeu ainda.",
+        book: nextBook,
+        page: nextBook ? getBookSavedPage(nextBook) : 1,
+      },
+      {
+        slot: "complete",
+        label: "Missão concluída",
+        title: completedBook ? `${completedBook.title}` : "Nenhuma missão concluída",
+        copy: completedBook ? "Registro fechado no histórico local do Operador." : "A primeira conclusão ainda aguarda a travessia.",
+        book: completedBook,
+        page: completedBook ? getBookSavedPage(completedBook) : 1,
+      },
+    ];
+  }
+
+  function renderMissionStack(currentBook, currentMission) {
+    if (!els.missionStack) return;
+    els.missionStack.innerHTML = "";
+    getMissionTimeline(currentBook, currentMission).forEach((mission) => {
+      const index = mission.book ? books.indexOf(mission.book) : -1;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `mission-node mission-node--${mission.slot}`;
+      button.disabled = index < 0;
+      button.setAttribute("aria-disabled", index < 0 ? "true" : "false");
+      if (index >= 0) {
+        button.dataset.observerBookIndex = String(index);
+        button.dataset.observerPage = String(mission.page || 1);
+      }
+      button.innerHTML = `
+        <span>${mission.label}</span>
+        <strong>${mission.title}</strong>
+        <small>${mission.copy}</small>
+      `;
+      els.missionStack.appendChild(button);
+    });
   }
 
   function getPersonalArchiveEntries() {
@@ -1265,6 +1389,7 @@
     if (els.missionTitle) els.missionTitle.textContent = mission.title;
     if (els.missionCopy) els.missionCopy.textContent = mission.copy;
     if (els.missionProgress) els.missionProgress.style.width = `${mission.progress}%`;
+    renderMissionStack(missionBook, mission);
 
     if (els.personalArchiveList) {
       els.personalArchiveList.innerHTML = "";
@@ -1321,6 +1446,8 @@
         });
       }
     }
+
+    renderDashboardSignals(getCurrentBook());
   }
 
   function hasCurrentPageBookmark(book) {
@@ -4204,6 +4331,7 @@
     els.libraryNotes.forEach((note) => {
       note.textContent = getLibraryMicrocopy(book, overall);
     });
+    renderDashboardSignals(book, overall);
   }
 
   function readTraversalNotebook() {
