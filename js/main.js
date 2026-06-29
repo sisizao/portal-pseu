@@ -161,7 +161,7 @@
     },
   };
   window.PSEU_FUNNEL_CONFIG = FUNNEL_MEDIA;
-  // Troque estes caminhos quando os videos provisórios forem substituídos.
+  // Caminhos das transmissões recuperadas exibidas antes do acesso final.
   const RECOVERED_ARCHIVE_FILES = [
     { index: 1, title: "ARQUIVO 01", status: "Transmissão recuperada / 01", video: "escesqueleto/IMG_6443video 1.MP4" },
     { index: 2, title: "ARQUIVO 02", status: "Transmissão recuperada / 02", video: "escesqueleto/IMG_6445video 2.MP4" },
@@ -653,7 +653,7 @@
       if (action.dataset.action === "checkout-gumroad") {
         handleFinalCheckout().catch((error) => {
           console.warn("[PSEU CHECKOUT] Falha ao preparar checkout.", error);
-          showCheckoutNotice("Checkout Gumroad ainda nao configurado. Tente novamente em instantes.");
+          showCheckoutNotice("A travessia final ainda não respondeu. Tente novamente em instantes.");
         });
       }
       if (action.dataset.action === "logout") {
@@ -2807,7 +2807,7 @@
       return hasFragmentRead(book) ? "Fragmento lido" : "Fragmento liberado";
     }
     if (isPrivatePdfMissing(book)) return "Arquivo protegido ainda não provisionado";
-    if (!book?.available) return state.protectedBooks.loaded ? "Em desenvolvimento" : "Em breve";
+    if (!book?.available) return state.protectedBooks.loaded ? "Arquivo selado" : "Aguardando provisionamento";
     if (context === "preportal" && hasFragmentRead(book)) return "Fragmento lido";
     if (getStoredBookProgress(book) > 0) return "Em leitura";
     if (hasVisitedBook(book)) return "Visitado";
@@ -3390,8 +3390,8 @@
 
     const canUseDevFallback = Boolean(config.devMode && isLocalDevelopmentHost());
     const message = canUseDevFallback
-      ? "Checkout Gumroad ainda nao configurado. Em desenvolvimento, use /acesso para entrar com uma sessao valida. Compra real depende de Gumroad, webhook, banco, sessao e acesso em /acesso."
-      : "Checkout Gumroad ainda nao configurado. A compra real ainda nao esta disponivel.";
+      ? "A travessia final ainda não está provisionada neste ambiente. Use /acesso para validar a entrada operacional."
+      : "A travessia final ainda não foi provisionada. O Centro preservou esta decisão para quando o acesso estiver ativo.";
 
     showCheckoutNotice(message);
     trackAnalytics("final_cta_checkout_missing_config", {
@@ -3638,8 +3638,8 @@
     }
     if (book.available === false || book.status === "em breve" || book.status === "locked") {
       const stateCopy = book.number === 18
-        ? "Arquivo final selado. A ultima peca permanece preservada ate a hora certa."
-        : "Biblioteca em expansao. A capa permanece visivel; a leitura segue em desenvolvimento.";
+        ? "Arquivo final selado. A última peça permanece preservada até a hora certa."
+        : "Arquivo selado. O Centro preserva esta travessia para quando o conteúdo final for provisionado.";
       return `Proposta: ${proposal} Estado: ${stateCopy}`;
     }
     const transformation = book.phrase || book.readerSubtitle || book.subtitle || "Uma passagem interna preparada para mudar a forma de leitura.";
@@ -3667,7 +3667,7 @@
         node.classList.toggle("library-tile--fragment-read", hasFragmentRead(book));
         node.disabled = false;
         node.setAttribute("aria-disabled", book.available ? "false" : "true");
-        node.title = book.available ? `Abrir ${book.title}` : `${book.title} · Em desenvolvimento`;
+        node.title = book.available ? `Abrir ${book.title}` : `${book.title} · Arquivo selado`;
         const cover = node.querySelector(".library-tile__cover");
         setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
         node.querySelector(".library-tile__number").textContent = String(book.number).padStart(2, "0");
@@ -3766,7 +3766,7 @@
       tile.classList.toggle("library-tile--fragment-read", hasFragmentRead(book));
       tile.disabled = false;
       tile.setAttribute("aria-disabled", available ? "false" : "true");
-      tile.title = available ? `Abrir ${book.title}` : `${book.title} · Em desenvolvimento`;
+      tile.title = available ? `Abrir ${book.title}` : `${book.title} · Arquivo selado`;
       const statusNode = tile.querySelector(".library-tile__status");
       if (statusNode) statusNode.textContent = getBookPresenceLabel(book, tile.closest(".preportal, .preportal-page") ? "preportal" : "portal");
       const progressNode = tile.querySelector(".library-tile__progress i");
@@ -4172,7 +4172,7 @@
       playButton.setAttribute("aria-disabled", unavailable ? "true" : "false");
       playButton.setAttribute(
         "aria-label",
-        unavailable ? "Transmissão ainda não provisionada" : `Reproduzir ${config?.title || "VSL"}`
+        unavailable ? "Transmissão ainda não provisionada" : `Reproduzir ${config?.title || "transmissão"}`
       );
     }
 
@@ -4224,7 +4224,7 @@
       } else if (!video.src) {
         video.src = toUrl(config.video);
       }
-      video.setAttribute("aria-label", `${config.title} - VSL PSEU`);
+      video.setAttribute("aria-label", `${config.title} - transmissão PSEU`);
       video.dataset.mode = compact ? "mobile" : "desktop";
       video.controls = false;
       video.volume = Number(document.querySelector(`[data-funnel-volume="${key}"]`)?.value || 0.85);
