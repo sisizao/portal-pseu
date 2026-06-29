@@ -171,6 +171,8 @@
   let recoveredArchiveNoticeTimer = 0;
   let checkoutConfigPromise = null;
   let contentProvisioningRefreshTimer = 0;
+  let traversalNotebookSaveTimer = 0;
+  let traversalNotebookHasPendingSave = false;
 
   function trackAnalytics(eventName, options = {}) {
     window.PSEU_ANALYTICS?.track?.(eventName, options);
@@ -286,8 +288,11 @@
     notebookCloseButtons: document.querySelectorAll("[data-notebook-close]"),
     notebookBookTitle: document.querySelector("[data-notebook-book-title]"),
     notebookMeta: document.querySelector("[data-notebook-meta]"),
+    notebookChapter: document.querySelector("[data-notebook-chapter]"),
+    notebookPageLabel: document.querySelector("[data-notebook-page-label]"),
     notebookText: document.querySelector("[data-notebook-text]"),
     notebookStatus: document.querySelector("[data-notebook-status]"),
+    notebookSaveState: document.querySelector("[data-notebook-save-state]"),
     notebookPageButton: document.querySelector("[data-notebook-page]"),
   };
 
@@ -701,6 +706,7 @@
       touchLastOpenedBook(book, state.activePage);
     }
     if (!fragmentScope && isTraversalNotebookOpen()) {
+      flushTraversalNotebookSave();
       state.traversalNotebook.activeBookId = book.id;
       renderTraversalNotebook();
     }
@@ -1141,7 +1147,7 @@
   }
 
   function getTraversalRecordMeta(record) {
-    const chapter = getTraversalRecordChapter(record.book, record.page);
+    const chapter = record.chapterTitle || getTraversalRecordChapter(record.book, record.page);
     const date = record.dateLabel || "sem data";
     return `${record.book.title} · ${chapter} · p. ${padPage(record.page || 1)} · ${date}`;
   }
@@ -1156,11 +1162,13 @@
         const timestamp = Date.parse(entry.updatedAt || "") || 0;
         const page = clamp(Number(entry.page || getBookSavedPage(book) || 1), 1, book.pageCount || 999);
         const dateLabel = formatTraversalNotebookDate(entry.updatedAt) || "Registro de campo";
+        const chapterTitle = entry.chapterTitle || getTraversalRecordChapter(book, page);
         return {
           book,
           page,
           timestamp,
           text,
+          chapterTitle,
           dateLabel,
           source: dateLabel,
           label: text.length > 88 ? `${text.slice(0, 85).trim()}...` : text,
@@ -1181,7 +1189,7 @@
       const haystack = normalizeRecordSearch([
         record.text,
         record.book.title,
-        getTraversalRecordChapter(record.book, record.page),
+        record.chapterTitle || getTraversalRecordChapter(record.book, record.page),
         record.dateLabel,
       ].join(" "));
       return haystack.includes(query);
@@ -4238,9 +4246,18 @@
     state.traversalNotebook.entries[book.id] = state.traversalNotebook.entries[book.id] || {
       text: "",
       page: null,
+      chapterTitle: "",
       updatedAt: null,
     };
     return state.traversalNotebook.entries[book.id];
+  }
+
+  function getTraversalNotebookLocation(book, page = null) {
+    const resolvedPage = clamp(Number(page || state.activePage || getBookSavedPage(book) || 1), 1, book?.pageCount || 999);
+    return {
+      page: resolvedPage,
+      chapterTitle: getTraversalRecordChapter(book, resolvedPage),
+    };
   }
 
   function formatTraversalNotebookDate(value) {
@@ -4255,17 +4272,25 @@
     });
   }
 
-  function updateTraversalNotebookStatus(entry) {
+  function updateTraversalNotebookStatus(entry, mode = "saved") {
+    if (els.notebookSaveState) {
+      els.notebookSaveState.textContent = mode === "saving" ? "Salvando" : "Salvo";
+      els.notebookSaveState.dataset.state = mode;
+    }
     if (!els.notebookStatus) return;
     const text = String(entry?.text || "").trim();
     if (!text) {
-      els.notebookStatus.textContent = "O Caderno permanece em silêncio.";
+      els.notebookStatus.textContent = mode === "saving"
+        ? "Preparando o primeiro sinal."
+        : "O Caderno permanece em silêncio.";
       return;
     }
 
     const words = text.split(/\s+/).filter(Boolean).length;
     const updatedAt = formatTraversalNotebookDate(entry.updatedAt);
-    els.notebookStatus.textContent = updatedAt
+    els.notebookStatus.textContent = mode === "saving"
+      ? "Autosave discreto em curso."
+      : updatedAt
       ? `${words} sinais preservados · ${updatedAt}`
       : `${words} sinais preservados`;
   }
@@ -4279,6 +4304,7 @@
     const entry = getTraversalNotebookEntry(book);
     const savedPage = Number(entry?.page || 0);
     const currentPage = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+    const location = getTraversalNotebookLocation(book, savedPage || currentPage);
 
     if (els.notebookBookTitle) els.notebookBookTitle.textContent = book.title;
     if (els.notebookMeta) {
@@ -4286,6 +4312,8 @@
         ? `Sinal marcado na página ${savedPage}. Página ativa: ${currentPage}.`
         : `Página ativa: ${currentPage}. Nenhum ponto fixado neste arquivo.`;
     }
+    if (els.notebookChapter) els.notebookChapter.textContent = entry.chapterTitle || location.chapterTitle;
+    if (els.notebookPageLabel) els.notebookPageLabel.textContent = padPage(savedPage || currentPage);
     if (els.notebookText && els.notebookText.value !== (entry?.text || "")) {
       els.notebookText.value = entry?.text || "";
     }
@@ -4312,6 +4340,7 @@
 
   function closeTraversalNotebook() {
     if (!els.notebookDrawer) return;
+    flushTraversalNotebookSave();
     els.notebookDrawer.classList.remove("is-open");
     els.notebookDrawer.setAttribute("aria-hidden", "true");
     els.body.classList.remove("is-notebook-open");
@@ -4345,11 +4374,40 @@
 
     entry.text = els.notebookText.value;
     if (!entry.page) {
-      entry.page = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+      const location = getTraversalNotebookLocation(book);
+      entry.page = location.page;
+      entry.chapterTitle = location.chapterTitle;
     }
+    scheduleTraversalNotebookSave(entry);
+  }
+
+  function scheduleTraversalNotebookSave(entry) {
+    traversalNotebookHasPendingSave = true;
+    updateTraversalNotebookStatus(entry, "saving");
+    window.clearTimeout(traversalNotebookSaveTimer);
+    traversalNotebookSaveTimer = window.setTimeout(flushTraversalNotebookSave, 720);
+  }
+
+  function flushTraversalNotebookSave() {
+    if (!traversalNotebookHasPendingSave) return;
+    const book = getTraversalNotebookBook();
+    const entry = getTraversalNotebookEntry(book);
+    if (!entry) return;
+
+    if (!entry.page) {
+      const location = getTraversalNotebookLocation(book);
+      entry.page = location.page;
+      entry.chapterTitle = location.chapterTitle;
+    }
+    if (!entry.chapterTitle) {
+      entry.chapterTitle = getTraversalRecordChapter(book, entry.page);
+    }
+
     entry.updatedAt = new Date().toISOString();
+    traversalNotebookHasPendingSave = false;
+    window.clearTimeout(traversalNotebookSaveTimer);
     saveTraversalNotebook();
-    updateTraversalNotebookStatus(entry);
+    updateTraversalNotebookStatus(entry, "saved");
     renderOperations();
   }
 
@@ -4358,10 +4416,15 @@
     const entry = getTraversalNotebookEntry(book);
     if (!entry) return;
 
-    entry.page = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+    const location = getTraversalNotebookLocation(book);
+    entry.page = location.page;
+    entry.chapterTitle = location.chapterTitle;
     entry.updatedAt = new Date().toISOString();
+    traversalNotebookHasPendingSave = false;
+    window.clearTimeout(traversalNotebookSaveTimer);
     saveTraversalNotebook();
     renderTraversalNotebook();
+    updateTraversalNotebookStatus(entry, "saved");
     renderOperations();
   }
 
