@@ -4594,7 +4594,7 @@ body.is-fragment-open {
 }
 
 .funnel-vsl-stage.is-video-unavailable::after {
-  content: "Transmissão ainda não provisionada";
+  content: "Transmissão em silêncio";
   display: grid;
   place-items: center;
   padding: 24px;

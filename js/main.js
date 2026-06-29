@@ -133,11 +133,24 @@
     "#portal": "portal-interno",
     "#portal-interno": "portal-interno",
   };
+  const PSEU_PORTAL_HASH_ROUTES = {
+    "#centro": "inicio",
+    "#inicio": "inicio",
+    "#biblioteca": "biblioteca",
+    "#arquivos": "biblioteca",
+    "#travessia": "travessia",
+    "#missoes": "travessia",
+    "#portal": "portal-interno",
+    "#portal-interno": "portal-interno",
+  };
   const PSEU_SECTION_HASHES = {
     "funil-chamado": "#chamado",
     "funil-biblioteca": "#biblioteca",
     "funil-travessia": "#travessia",
     "funil-oferta": "#oferta",
+    inicio: "#centro",
+    biblioteca: "#biblioteca",
+    travessia: "#missoes",
     "portal-interno": "#portal",
   };
   const PDF_JS_WORKER_SRC = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -658,10 +671,10 @@
       }
       if (action.dataset.action === "logout") {
         handlePortalLogout(action).catch((error) => {
-          console.warn("[PSEU AUTH] Falha ao encerrar sessao.", error);
+          console.warn("[PSEU AUTH] Falha ao encerrar sessão.", error);
           action.disabled = false;
           action.removeAttribute("aria-busy");
-          window.alert?.("Nao foi possivel encerrar a sessao agora. Tente novamente.");
+          window.alert?.("Não foi possível encerrar a sessão agora. Tente novamente.");
         });
       }
     });
@@ -1174,14 +1187,14 @@
         slot: "next",
         label: "Próxima missão",
         title: nextBook ? `Preparar ${nextBook.title}` : "Próxima missão em silêncio",
-        copy: nextBook ? "O Centro preserva este arquivo para o próximo avanço." : "Nenhum arquivo seguinte respondeu ainda.",
+        copy: nextBook ? "O Centro preserva este arquivo para o próximo avanço." : "O próximo arquivo permanece em silêncio até a travessia avançar.",
         book: nextBook,
         page: nextBook ? getBookSavedPage(nextBook) : 1,
       },
       {
         slot: "complete",
         label: "Missão concluída",
-        title: completedBook ? `${completedBook.title}` : "Nenhuma missão concluída",
+        title: completedBook ? `${completedBook.title}` : "Primeira conclusão em silêncio",
         copy: completedBook ? "Registro fechado no histórico local do Operador." : "A primeira conclusão ainda aguarda a travessia.",
         book: completedBook,
         page: completedBook ? getBookSavedPage(completedBook) : 1,
@@ -1407,7 +1420,7 @@
       els.observerLog.innerHTML = "";
       const entries = getObserverEntries();
       if (!entries.length) {
-        appendOperationEmpty(els.observerLog, "Nenhuma observação registrada nesta travessia.");
+        appendOperationEmpty(els.observerLog, "O Observador ainda não registrou descobertas nesta travessia.");
       } else {
         entries.forEach((entry) => {
           const button = buildOperationButton({
@@ -1432,8 +1445,8 @@
         appendOperationEmpty(
           els.myRecordsList,
           hasFilters
-            ? "Nenhum registro respondeu a este filtro."
-            : "O Caderno ainda não preservou nenhum registro de campo."
+            ? "O filtro não encontrou sinais preservados."
+            : "O Caderno ainda não preservou registros de campo."
         );
       } else {
         entries.forEach((entry) => {
@@ -1580,7 +1593,7 @@
     }
     if (progress <= 45) {
       return {
-        title: "Retorno em curso",
+        title: "Retorno detectado",
         body: "Você não voltou por acaso. A leitura está puxando algo que ainda não foi dito em voz alta.",
       };
     }
@@ -2806,8 +2819,8 @@
     if (context === "preportal" && book?.id === FRAGMENT_BOOK_ID) {
       return hasFragmentRead(book) ? "Fragmento lido" : "Fragmento liberado";
     }
-    if (isPrivatePdfMissing(book)) return "Arquivo protegido ainda não provisionado";
-    if (!book?.available) return state.protectedBooks.loaded ? "Arquivo selado" : "Aguardando provisionamento";
+    if (isPrivatePdfMissing(book)) return "Arquivo protegido aguarda entrega ao Centro";
+    if (!book?.available) return state.protectedBooks.loaded ? "Arquivo selado" : "Centro verificando arquivo";
     if (context === "preportal" && hasFragmentRead(book)) return "Fragmento lido";
     if (getStoredBookProgress(book) > 0) return "Em leitura";
     if (hasVisitedBook(book)) return "Visitado";
@@ -3218,7 +3231,9 @@
       return;
     }
 
-    const targetId = PSEU_HASH_ROUTES[hash];
+    const targetId = isProtectedPortalRoute()
+      ? PSEU_PORTAL_HASH_ROUTES[hash]
+      : PSEU_HASH_ROUTES[hash];
     if (targetId && isExternalFunnelTarget(targetId)) {
       window.history.replaceState(null, "", `${window.location.pathname}${window.location.search || ""}`);
       return;
@@ -3390,8 +3405,8 @@
 
     const canUseDevFallback = Boolean(config.devMode && isLocalDevelopmentHost());
     const message = canUseDevFallback
-      ? "A travessia final ainda não está provisionada neste ambiente. Use /acesso para validar a entrada operacional."
-      : "A travessia final ainda não foi provisionada. O Centro preservou esta decisão para quando o acesso estiver ativo.";
+      ? "A travessia final ainda não está ativa. Entre pela área de acesso para validar a passagem."
+      : "A travessia final ainda não está ativa. O Centro preservou esta decisão para quando o acesso responder.";
 
     showCheckoutNotice(message);
     trackAnalytics("final_cta_checkout_missing_config", {
@@ -3423,7 +3438,7 @@
         scheduleContentProvisioningRefresh();
       })
       .catch((error) => {
-        console.warn("[PSEU] Provisionamento de conteudo indisponivel.", error);
+        console.warn("[PSEU] Provisionamento de conteúdo indisponível.", error);
       });
   }
 
@@ -3540,7 +3555,7 @@
       applyProtectedBooksPayload(payload);
     } catch (error) {
       state.protectedBooks.error = error?.message || "books_api_error";
-      console.warn("[PSEU AUTH] Permissoes reais indisponiveis. Mantendo compatibilidade local.", error);
+      console.warn("[PSEU AUTH] Permissões reais indisponíveis. Mantendo compatibilidade local.", error);
     } finally {
       state.protectedBooks.loading = false;
     }
@@ -3634,12 +3649,12 @@
     if (!book) return "";
     const proposal = book.summary || book.shortDescription || book.category || "Um arquivo da travessia PSEU.";
     if (isPrivatePdfMissing(book)) {
-      return `Proposta: ${proposal} Estado: Arquivo protegido ainda não provisionado.`;
+      return `Proposta: ${proposal} Estado: Arquivo protegido aguarda entrega ao Centro.`;
     }
     if (book.available === false || book.status === "locked") {
       const stateCopy = book.number === 18
         ? "Arquivo final selado. A última peça permanece preservada até a hora certa."
-        : "Arquivo selado. O Centro preserva esta travessia para quando o conteúdo final for provisionado.";
+        : "Arquivo selado. O Centro preserva esta travessia para quando o conteúdo final chegar.";
       return `Proposta: ${proposal} Estado: ${stateCopy}`;
     }
     const transformation = book.phrase || book.readerSubtitle || book.subtitle || "Uma passagem interna preparada para mudar a forma de leitura.";
@@ -3694,9 +3709,9 @@
       const empty = document.createElement("div");
       empty.className = "chapter-item";
       empty.innerHTML = `
-        <span class="chapter-item__index">EM BREVE</span>
+        <span class="chapter-item__index">ARQUIVO EM OBSERVAÇÃO</span>
         <span class="chapter-item__title">${book.title}</span>
-        <small class="chapter-item__meta">Leitura interna preparada para expansão futura.</small>
+        <small class="chapter-item__meta">Capítulos serão alinhados quando o arquivo final chegar.</small>
       `;
       els.chapterList.appendChild(empty);
       return;
@@ -3717,7 +3732,7 @@
     const template = document.getElementById("image-template");
     els.imageStack.innerHTML = "";
 
-    const visuals = book.visuals?.length ? book.visuals : [{ src: getProvisionedCoverSource(book), title: book.title, label: "Fragmento visual" }];
+    const visuals = book.visuals?.length ? book.visuals : [{ src: getProvisionedCoverSource(book), title: book.title, label: "Presença do arquivo" }];
     visuals.forEach((item) => {
       const node = template.content.firstElementChild.cloneNode(true);
       setProvisionedImage(node.querySelector("img"), item.src, item.title || book.title);
@@ -4172,7 +4187,7 @@
       playButton.setAttribute("aria-disabled", unavailable ? "true" : "false");
       playButton.setAttribute(
         "aria-label",
-        unavailable ? "Transmissão ainda não provisionada" : `Reproduzir ${config?.title || "transmissão"}`
+        unavailable ? "Transmissão em silêncio" : `Reproduzir ${config?.title || "transmissão"}`
       );
     }
 
@@ -4302,7 +4317,7 @@
     const toggleButton = document.querySelector(`[data-funnel-command="toggle"][data-funnel-target="${key}"]`);
     if (toggleButton) {
       const unavailable = video.dataset.available === "false" || video.closest(".funnel-vsl-card")?.classList.contains("is-video-unavailable");
-      toggleButton.textContent = unavailable ? "Indisponível" : video.paused ? "Reproduzir" : "Pausar";
+      toggleButton.textContent = unavailable ? "Em silêncio" : video.paused ? "Reproduzir" : "Pausar";
       toggleButton.disabled = unavailable;
       toggleButton.setAttribute("aria-disabled", unavailable ? "true" : "false");
     }
@@ -4355,7 +4370,7 @@
     try {
       localStorage.setItem(TRAVERSAL_NOTEBOOK_STORAGE_KEY, JSON.stringify(state.traversalNotebook));
     } catch (error) {
-      console.warn("[PSEU] Nao foi possivel preservar o Caderno de Travessia.", error);
+      console.warn("[PSEU] Não foi possível preservar o Caderno de Travessia.", error);
     }
   }
 
@@ -4417,7 +4432,7 @@
     const words = text.split(/\s+/).filter(Boolean).length;
     const updatedAt = formatTraversalNotebookDate(entry.updatedAt);
     els.notebookStatus.textContent = mode === "saving"
-      ? "Autosave discreto em curso."
+      ? "Autosave discreto em andamento."
       : updatedAt
       ? `${words} sinais preservados · ${updatedAt}`
       : `${words} sinais preservados`;
@@ -4438,7 +4453,7 @@
     if (els.notebookMeta) {
       els.notebookMeta.textContent = savedPage
         ? `Sinal marcado na página ${savedPage}. Página ativa: ${currentPage}.`
-        : `Página ativa: ${currentPage}. Nenhum ponto fixado neste arquivo.`;
+        : `Página ativa: ${currentPage}. Ponto de campo ainda em silêncio neste arquivo.`;
     }
     if (els.notebookChapter) els.notebookChapter.textContent = entry.chapterTitle || location.chapterTitle;
     if (els.notebookPageLabel) els.notebookPageLabel.textContent = padPage(savedPage || currentPage);

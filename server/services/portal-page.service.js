@@ -64,7 +64,7 @@ const portalAuthScript = `<script>
           window.dispatchEvent(new CustomEvent("pseu:books-ready", { detail: window.PSEU_PORTAL_BOOKS }));
         }
       } catch (error) {
-        console.warn("[PSEU AUTH] Livros protegidos ainda nao foram carregados.", error);
+        console.warn("[PSEU AUTH] Livros protegidos ainda não foram carregados.", error);
       }
     } catch (error) {
       window.location.replace("/acesso?returnTo=/portal");

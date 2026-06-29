@@ -921,8 +921,8 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 
       if (!response.ok) {
         const copy = mode === "claim"
-          ? "Nao foi possivel ativar. Confira o e-mail de liberacao e a senha."
-          : "Login nao autorizado. Confira e-mail e senha.";
+          ? "Não foi possível ativar. Confira o e-mail de liberação e a senha."
+          : "Login não autorizado. Confira e-mail e senha.";
         setMessage(copy);
         return;
       }
