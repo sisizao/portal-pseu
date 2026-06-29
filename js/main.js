@@ -52,6 +52,10 @@
       entries: {},
       activeBookId: "",
     },
+    myRecordsFilters: {
+      bookId: "",
+      search: "",
+    },
     continuity: {
       version: 1,
       lastFunnelStage: 1,
@@ -275,6 +279,8 @@
     personalArchiveList: document.querySelector("[data-personal-archive-list]"),
     observerLog: document.querySelector("[data-observer-log]"),
     myRecordsList: document.querySelector("[data-my-records-list]"),
+    recordsBookFilter: document.querySelector("[data-records-book-filter]"),
+    recordsSearch: document.querySelector("[data-records-search]"),
     notebookDrawer: document.querySelector("[data-traversal-notebook]"),
     notebookOpenButtons: document.querySelectorAll("[data-notebook-open]"),
     notebookCloseButtons: document.querySelectorAll("[data-notebook-close]"),
@@ -449,6 +455,14 @@
     els.notebookCloseButtons.forEach((button) => button.addEventListener("click", closeTraversalNotebook));
     els.notebookText?.addEventListener("input", handleTraversalNotebookInput);
     els.notebookPageButton?.addEventListener("click", markTraversalNotebookPage);
+    els.recordsBookFilter?.addEventListener("change", () => {
+      state.myRecordsFilters.bookId = els.recordsBookFilter.value || "";
+      renderOperations();
+    });
+    els.recordsSearch?.addEventListener("input", () => {
+      state.myRecordsFilters.search = els.recordsSearch.value.trim().toLowerCase();
+      renderOperations();
+    });
 
     els.focusFrame?.addEventListener("pointermove", handleTilt);
     els.focusFrame?.addEventListener("pointerleave", resetTilt);
@@ -1114,25 +1128,93 @@
       .slice(0, 5);
   }
 
-  function getTraversalNotebookRecords() {
+  function normalizeRecordSearch(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function getTraversalRecordChapter(book, page) {
+    return chapterForPage(book, page)?.title || "Trecho registrado";
+  }
+
+  function getTraversalRecordMeta(record) {
+    const chapter = getTraversalRecordChapter(record.book, record.page);
+    const date = record.dateLabel || "sem data";
+    return `${record.book.title} · ${chapter} · p. ${padPage(record.page || 1)} · ${date}`;
+  }
+
+  function getTraversalNotebookRecords(options = {}) {
     const entries = state.traversalNotebook?.entries || {};
-    return Object.entries(entries)
+    const records = Object.entries(entries)
       .map(([bookId, entry]) => {
         const book = books.find((candidate) => candidate.id === bookId);
         const text = String(entry?.text || "").trim();
         if (!book || !text || !isBookReadable(book)) return null;
         const timestamp = Date.parse(entry.updatedAt || "") || 0;
         const page = clamp(Number(entry.page || getBookSavedPage(book) || 1), 1, book.pageCount || 999);
+        const dateLabel = formatTraversalNotebookDate(entry.updatedAt) || "Registro de campo";
         return {
           book,
           page,
           timestamp,
-          source: formatTraversalNotebookDate(entry.updatedAt) || "Registro de campo",
+          text,
+          dateLabel,
+          source: dateLabel,
           label: text.length > 88 ? `${text.slice(0, 85).trim()}...` : text,
         };
       })
       .filter(Boolean)
       .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+
+    if (!options.filtered) return records;
+
+    const bookId = state.myRecordsFilters.bookId || "";
+    const query = normalizeRecordSearch(state.myRecordsFilters.search);
+
+    return records.filter((record) => {
+      if (bookId && record.book.id !== bookId) return false;
+      if (!query) return true;
+
+      const haystack = normalizeRecordSearch([
+        record.text,
+        record.book.title,
+        getTraversalRecordChapter(record.book, record.page),
+        record.dateLabel,
+      ].join(" "));
+      return haystack.includes(query);
+    });
+  }
+
+  function renderRecordsBookFilter(records) {
+    if (!els.recordsBookFilter) return;
+
+    const options = Array.from(new Map(records.map((record) => [record.book.id, record.book])).values())
+      .map((book) => ({ value: book.id, label: book.title }));
+    const hash = options.map((option) => `${option.value}:${option.label}`).join("|");
+    const current = state.myRecordsFilters.bookId || els.recordsBookFilter.value || "";
+
+    if (els.recordsBookFilter.dataset.optionsHash !== hash) {
+      els.recordsBookFilter.innerHTML = "";
+      const allOption = document.createElement("option");
+      allOption.value = "";
+      allOption.textContent = "Todos os arquivos";
+      els.recordsBookFilter.appendChild(allOption);
+      options.forEach((option) => {
+        const node = document.createElement("option");
+        node.value = option.value;
+        node.textContent = option.label;
+        els.recordsBookFilter.appendChild(node);
+      });
+      els.recordsBookFilter.dataset.optionsHash = hash;
+    }
+
+    const availableValues = new Set(["", ...options.map((option) => option.value)]);
+    const nextValue = availableValues.has(current) ? current : "";
+    els.recordsBookFilter.value = nextValue;
+    state.myRecordsFilters.bookId = nextValue;
   }
 
   function appendOperationEmpty(parent, copy) {
@@ -1206,15 +1288,26 @@
 
     if (els.myRecordsList) {
       els.myRecordsList.innerHTML = "";
-      const entries = getTraversalNotebookRecords();
+      const allEntries = getTraversalNotebookRecords();
+      renderRecordsBookFilter(allEntries);
+      if (els.recordsSearch && els.recordsSearch.value !== state.myRecordsFilters.search) {
+        els.recordsSearch.value = state.myRecordsFilters.search;
+      }
+      const entries = getTraversalNotebookRecords({ filtered: true });
       if (!entries.length) {
-        appendOperationEmpty(els.myRecordsList, "O Caderno ainda não preservou nenhum registro de campo.");
+        const hasFilters = Boolean(state.myRecordsFilters.bookId || state.myRecordsFilters.search);
+        appendOperationEmpty(
+          els.myRecordsList,
+          hasFilters
+            ? "Nenhum registro respondeu a este filtro."
+            : "O Caderno ainda não preservou nenhum registro de campo."
+        );
       } else {
         entries.forEach((entry) => {
           const button = buildOperationButton({
             ...entry,
             title: entry.label,
-            meta: `${entry.book.title} · p. ${padPage(entry.page || 1)} · ${entry.source}`,
+            meta: getTraversalRecordMeta(entry),
           }, "my-record");
           els.myRecordsList.appendChild(button);
         });

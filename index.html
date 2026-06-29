@@ -744,6 +744,18 @@
 
           <article class="operation-panel operation-panel--records">
             <span class="eyebrow">Meus Registros</span>
+            <div class="my-records-toolbar" aria-label="Filtros de registros">
+              <label>
+                <span>Arquivo</span>
+                <select data-records-book-filter aria-label="Filtrar registros por livro">
+                  <option value="">Todos os arquivos</option>
+                </select>
+              </label>
+              <label>
+                <span>Busca</span>
+                <input type="search" data-records-search placeholder="Buscar sinal..." aria-label="Buscar nos registros" />
+              </label>
+            </div>
             <div class="my-records-list" data-my-records-list></div>
           </article>
         </div>

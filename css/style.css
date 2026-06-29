@@ -1947,6 +1947,45 @@ body.is-portal-ready .journey-banner {
     rgba(255, 255, 255, 0.028);
 }
 
+.my-records-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 8px;
+}
+
+.my-records-toolbar label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.my-records-toolbar span {
+  color: rgba(241, 209, 132, 0.58);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.my-records-toolbar select,
+.my-records-toolbar input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(211, 167, 90, 0.16);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    rgba(0, 0, 0, 0.22);
+  color: rgba(243, 240, 231, 0.88);
+  padding: 0 10px;
+  outline: none;
+}
+
+.my-records-toolbar select:focus,
+.my-records-toolbar input:focus {
+  border-color: rgba(241, 209, 132, 0.42);
+  box-shadow: 0 0 0 1px rgba(241, 209, 132, 0.12);
+}
+
 .my-record {
   border-color: rgba(211, 167, 90, 0.12);
 }
@@ -7116,6 +7155,10 @@ body.is-reader-open {
   .operation-panel {
     min-height: 0;
     padding: 16px;
+  }
+
+  .my-records-toolbar {
+    grid-template-columns: 1fr;
   }
 
   .personal-archive__copy strong,
