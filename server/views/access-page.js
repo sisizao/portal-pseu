@@ -821,12 +821,12 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
       </div>
       <div class="access-note access-note--purchase">
         <span>&Aacute;rea protegida</span>
-        <p>Use o mesmo e-mail utilizado na compra para criar sua conta. O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
+        <p>Use o mesmo e-mail de liberação para criar sua conta. O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
       </div>
       <p class="lead">A entrada reconhece apenas quem possui passagem ativa. O arquivo interno preserva os livros, a travessia e os sinais que não pertencem ao funil público.</p>
       <div class="access-note">
         <span>Área protegida</span>
-        <p>Use o e-mail da compra ou a senha já criada para atravessar para o ambiente interno.</p>
+        <p>Use o e-mail de liberação ou a senha já criada para atravessar para o ambiente interno.</p>
       </div>
       <div class="access-copy__links">
         <p class="support">Suporte: ${supportEmail}</p>
@@ -840,7 +840,7 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
         <p>Confirme sua presença para abrir o Portal protegido.</p>
       </div>
 
-      <p class="purchase-reminder">Use o mesmo e-mail utilizado na compra para criar sua conta. O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
+      <p class="purchase-reminder">Use o mesmo e-mail de liberação para criar sua conta. O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
 
       <div class="access-status" aria-hidden="true">
         <div>
@@ -864,7 +864,7 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 
       <form class="is-active" data-form="claim">
         <label>
-          E-mail da compra
+          E-mail de liberação
           <input name="email" type="email" autocomplete="email" required />
         </label>
         <label>
@@ -921,7 +921,7 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 
       if (!response.ok) {
         const copy = mode === "claim"
-          ? "Nao foi possivel ativar. Confira o e-mail da compra e a senha."
+          ? "Nao foi possivel ativar. Confira o e-mail de liberacao e a senha."
           : "Login nao autorizado. Confira e-mail e senha.";
         setMessage(copy);
         return;

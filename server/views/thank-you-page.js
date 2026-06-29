@@ -4,7 +4,7 @@ function renderThankYouPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Compra confirmada | Portal PSEU</title>
+  <title>Acesso reconhecido | Portal PSEU</title>
   <style>
     :root {
       color-scheme: dark;
@@ -244,16 +244,16 @@ function renderThankYouPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
   <main>
     <div class="seal" aria-hidden="true">P</div>
 
-    <section class="panel" aria-label="Compra confirmada">
+    <section class="panel" aria-label="Acesso reconhecido">
       <div>
         <span class="eyebrow">Portal PSEU</span>
-        <h1>Compra confirmada.</h1>
+        <h1>Acesso reconhecido.</h1>
         <h2>Seu acesso ao Portal PSEU foi reconhecido.</h2>
       </div>
 
       <div class="content">
         <div class="message">
-          <p>Utilize o mesmo e-mail usado na compra para criar sua conta.</p>
+          <p>Utilize o mesmo e-mail de liberação para criar sua conta.</p>
           <p>O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
           <p>Se voc&ecirc; utilizar outro e-mail, o acesso poder&aacute; n&atilde;o ser localizado automaticamente.</p>
         </div>

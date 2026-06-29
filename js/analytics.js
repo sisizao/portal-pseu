@@ -13,12 +13,12 @@
     { id: 1, key: "call", label: "Chamado" },
     { id: 2, key: "library", label: "Biblioteca" },
     { id: 3, key: "travessia", label: "Travessia" },
-    { id: 4, key: "main-started", label: "VSL principal iniciado" },
-    { id: 5, key: "main-half", label: "VSL principal 50%" },
-    { id: 6, key: "main-completed", label: "VSL principal concluído" },
-    { id: 7, key: "offer-started", label: "VSL oferta iniciado" },
-    { id: 8, key: "offer-completed", label: "VSL oferta concluído" },
-    { id: 9, key: "final-cta", label: "CTA final" },
+    { id: 4, key: "main-started", label: "Transmissão principal iniciada" },
+    { id: 5, key: "main-half", label: "Transmissão principal 50%" },
+    { id: 6, key: "main-completed", label: "Transmissão principal concluída" },
+    { id: 7, key: "offer-started", label: "Transmissão de decisão iniciada" },
+    { id: 8, key: "offer-completed", label: "Transmissão de decisão concluída" },
+    { id: 9, key: "final-cta", label: "Decisão final" },
     { id: 10, key: "portal", label: "Portal interno" },
   ];
   const MILESTONES = [25, 50, 75, 100];

@@ -6,18 +6,18 @@ const IA_CATEGORIES = [
   },
   {
     id: "funil",
-    title: "Funil",
-    description: "Travessia pública, VSLs, biblioteca externa, fragmento e CTA final.",
+    title: "Travessia pública",
+    description: "Travessia pública, transmissões, biblioteca externa, fragmento e decisão final.",
   },
   {
     id: "portal",
     title: "Portal",
-    description: "Área interna, biblioteca protegida, sessões e experiência do comprador.",
+    description: "Área interna, biblioteca protegida, sessões e experiência do Operador.",
   },
   {
     id: "roteiros",
     title: "Roteiros",
-    description: "Narrativas, VSLs, sequências de leitura e materiais de apresentação.",
+    description: "Narrativas, transmissões, sequências de leitura e materiais de apresentação.",
   },
   {
     id: "identidade-visual",
@@ -31,13 +31,13 @@ const IA_CATEGORIES = [
   },
   {
     id: "frases-ctas",
-    title: "Frases/CTAs",
-    description: "Chamadas, promessas, microcopys e pontos de conversão.",
+    title: "Chamadas e decisões",
+    description: "Chamadas, promessas, microcopys e pontos de decisão.",
   },
   {
     id: "estrategia-venda",
-    title: "Estratégia de venda",
-    description: "Oferta, posicionamento, valor percebido e etapas de compra.",
+    title: "Estratégia de acesso",
+    description: "Oferta, posicionamento, valor percebido e etapas de decisão.",
   },
   {
     id: "configuracoes",
@@ -574,17 +574,17 @@ function renderAiPanelPage({ adminEmail = "pseu.oficial@gmail.com" } = {}) {
           <article>
             <span>Fonte futura</span>
             <strong>Livros e catalogo</strong>
-            <p>Mapear títulos, status, descrições, PDFs reais e materiais em desenvolvimento.</p>
+            <p>Mapear títulos, status, descrições, PDFs reais e materiais finais.</p>
           </article>
           <article>
             <span>Fonte futura</span>
-            <strong>Funil e oferta</strong>
-            <p>Organizar travessia, VSLs, CTAs, páginas públicas e mensagens de conversão.</p>
+            <strong>Travessia e decisão</strong>
+            <p>Organizar travessia, transmissões, pontos de decisão, páginas públicas e mensagens de conversão.</p>
           </article>
           <article>
             <span>Regra ativa</span>
-            <strong>Separado do comprador</strong>
-            <p>Esta área não compartilha interface, permissão ou memória com o Portal do cliente.</p>
+            <strong>Separado do Operador</strong>
+            <p>Esta área não compartilha interface, permissão ou memória com o Portal do Operador.</p>
           </article>
         </div>
       </aside>
