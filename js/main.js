@@ -274,6 +274,7 @@
     missionProgress: document.querySelector("[data-mission-progress]"),
     personalArchiveList: document.querySelector("[data-personal-archive-list]"),
     observerLog: document.querySelector("[data-observer-log]"),
+    myRecordsList: document.querySelector("[data-my-records-list]"),
     notebookDrawer: document.querySelector("[data-traversal-notebook]"),
     notebookOpenButtons: document.querySelectorAll("[data-notebook-open]"),
     notebookCloseButtons: document.querySelectorAll("[data-notebook-close]"),
@@ -1113,6 +1114,27 @@
       .slice(0, 5);
   }
 
+  function getTraversalNotebookRecords() {
+    const entries = state.traversalNotebook?.entries || {};
+    return Object.entries(entries)
+      .map(([bookId, entry]) => {
+        const book = books.find((candidate) => candidate.id === bookId);
+        const text = String(entry?.text || "").trim();
+        if (!book || !text || !isBookReadable(book)) return null;
+        const timestamp = Date.parse(entry.updatedAt || "") || 0;
+        const page = clamp(Number(entry.page || getBookSavedPage(book) || 1), 1, book.pageCount || 999);
+        return {
+          book,
+          page,
+          timestamp,
+          source: formatTraversalNotebookDate(entry.updatedAt) || "Registro de campo",
+          label: text.length > 88 ? `${text.slice(0, 85).trim()}...` : text,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
+  }
+
   function appendOperationEmpty(parent, copy) {
     const node = document.createElement("p");
     node.className = "operation-empty";
@@ -1137,9 +1159,9 @@
     const copy = document.createElement("span");
     copy.className = `${className}__copy`;
     const title = document.createElement("strong");
-    title.textContent = entry.book.title;
+    title.textContent = entry.title || entry.book.title;
     const meta = document.createElement("small");
-    meta.textContent = `${entry.source || entry.label || "Registro"} · p. ${padPage(entry.page || 1)} · ${progress}%`;
+    meta.textContent = entry.meta || `${entry.source || entry.label || "Registro"} · p. ${padPage(entry.page || 1)} · ${progress}%`;
     copy.append(title, meta);
 
     button.append(number, copy);
@@ -1178,6 +1200,23 @@
             source: entry.label || "Observação de campo",
           }, "observer-entry");
           els.observerLog.appendChild(button);
+        });
+      }
+    }
+
+    if (els.myRecordsList) {
+      els.myRecordsList.innerHTML = "";
+      const entries = getTraversalNotebookRecords();
+      if (!entries.length) {
+        appendOperationEmpty(els.myRecordsList, "O Caderno ainda não preservou nenhum registro de campo.");
+      } else {
+        entries.forEach((entry) => {
+          const button = buildOperationButton({
+            ...entry,
+            title: entry.label,
+            meta: `${entry.book.title} · p. ${padPage(entry.page || 1)} · ${entry.source}`,
+          }, "my-record");
+          els.myRecordsList.appendChild(button);
         });
       }
     }
@@ -4212,9 +4251,13 @@
     if (!entry || !els.notebookText) return;
 
     entry.text = els.notebookText.value;
+    if (!entry.page) {
+      entry.page = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+    }
     entry.updatedAt = new Date().toISOString();
     saveTraversalNotebook();
     updateTraversalNotebookStatus(entry);
+    renderOperations();
   }
 
   function markTraversalNotebookPage() {
@@ -4226,6 +4269,7 @@
     entry.updatedAt = new Date().toISOString();
     saveTraversalNotebook();
     renderTraversalNotebook();
+    renderOperations();
   }
 
   function openReader() {

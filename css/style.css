@@ -1795,7 +1795,7 @@ body.is-portal-ready .journey-banner {
 
 .operation-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1.08fr) repeat(2, minmax(240px, 0.96fr));
+  grid-template-columns: minmax(260px, 1.04fr) repeat(3, minmax(210px, 0.92fr));
   gap: 14px;
 }
 
@@ -1858,13 +1858,15 @@ body.is-portal-ready .journey-banner {
 }
 
 .personal-archive-list,
-.observer-log {
+.observer-log,
+.my-records-list {
   display: grid;
   gap: 10px;
 }
 
 .personal-archive,
-.observer-entry {
+.observer-entry,
+.my-record {
   appearance: none;
   width: 100%;
   min-height: 64px;
@@ -1887,7 +1889,9 @@ body.is-portal-ready .journey-banner {
 .personal-archive:hover,
 .personal-archive:focus-visible,
 .observer-entry:hover,
-.observer-entry:focus-visible {
+.observer-entry:focus-visible,
+.my-record:hover,
+.my-record:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(255, 255, 255, 0.18);
   background:
@@ -1896,7 +1900,8 @@ body.is-portal-ready .journey-banner {
 }
 
 .personal-archive__number,
-.observer-entry__number {
+.observer-entry__number,
+.my-record__number {
   width: 38px;
   height: 38px;
   display: grid;
@@ -1910,14 +1915,16 @@ body.is-portal-ready .journey-banner {
 }
 
 .personal-archive__copy,
-.observer-entry__copy {
+.observer-entry__copy,
+.my-record__copy {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
 .personal-archive__copy strong,
-.observer-entry__copy strong {
+.observer-entry__copy strong,
+.my-record__copy strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1926,10 +1933,30 @@ body.is-portal-ready .journey-banner {
 
 .personal-archive__copy small,
 .observer-entry__copy small,
+.my-record__copy small,
 .operation-empty {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.45;
+}
+
+.operation-panel--records {
+  border-color: rgba(211, 167, 90, 0.16);
+  background:
+    linear-gradient(180deg, rgba(211, 167, 90, 0.055), transparent 24%),
+    rgba(255, 255, 255, 0.028);
+}
+
+.my-record {
+  border-color: rgba(211, 167, 90, 0.12);
+}
+
+.my-record__number {
+  color: rgba(241, 209, 132, 0.94);
+  border-color: rgba(211, 167, 90, 0.16);
+  background:
+    radial-gradient(circle at 50% 36%, rgba(211, 167, 90, 0.12), transparent 46%),
+    rgba(0, 0, 0, 0.2);
 }
 
 .operation-empty {
@@ -7092,7 +7119,8 @@ body.is-reader-open {
   }
 
   .personal-archive__copy strong,
-  .observer-entry__copy strong {
+  .observer-entry__copy strong,
+  .my-record__copy strong {
     white-space: normal;
   }
 
