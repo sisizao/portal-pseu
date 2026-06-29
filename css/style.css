@@ -1465,7 +1465,7 @@ body.is-notebook-open {
 
 .traversal-notebook__field textarea {
   width: 100%;
-  min-height: 320px;
+  min-height: min(320px, 38vh);
   height: 100%;
   resize: none;
   border: 1px solid rgba(211, 167, 90, 0.18);
@@ -1537,6 +1537,31 @@ body.is-notebook-open {
 .notebook-access:hover {
   border-color: rgba(241, 209, 132, 0.5);
   color: #fff;
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  .traversal-notebook__panel {
+    padding: 20px 22px;
+    gap: 12px;
+  }
+
+  .traversal-notebook__context {
+    padding: 12px;
+  }
+
+  .traversal-notebook__field {
+    gap: 8px;
+  }
+
+  .traversal-notebook__field textarea {
+    min-height: 220px;
+    padding: 14px;
+    line-height: 1.55;
+  }
+
+  .traversal-notebook__footer {
+    padding-top: 12px;
+  }
 }
 
 @media (max-width: 720px) {
