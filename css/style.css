@@ -2913,6 +2913,7 @@ body.is-portal-ready .journey-banner {
   }
 
   .app-shell .sidebar {
+    align-content: start;
     z-index: 30;
     width: var(--sidebar-closed-w);
     padding: 14px 12px;
@@ -2927,6 +2928,7 @@ body.is-portal-ready .journey-banner {
 
   .app-shell .sidebar:hover,
   .app-shell.is-sidebar-expanded .sidebar {
+    align-content: stretch;
     width: 100%;
     padding: 20px;
     grid-template-rows: auto auto 1fr auto;
@@ -2959,6 +2961,17 @@ body.is-portal-ready .journey-banner {
       transform 0.24s ease;
   }
 
+  .app-shell .nav-item span,
+  .app-shell .nav-item strong {
+    display: block;
+    max-height: 0;
+    overflow: hidden;
+    transition:
+      opacity 0.18s ease,
+      transform 0.24s ease,
+      max-height 0.24s ease;
+  }
+
   .app-shell .brand-text {
     width: 0;
     overflow: hidden;
@@ -2982,11 +2995,22 @@ body.is-portal-ready .journey-banner {
     transform: translateX(0);
   }
 
+  .app-shell .sidebar:hover .nav-item span,
+  .app-shell.is-sidebar-expanded .nav-item span,
+  .app-shell .sidebar:hover .nav-item strong,
+  .app-shell.is-sidebar-expanded .nav-item strong {
+    max-height: 2.6em;
+  }
+
   .app-shell .sidebar-nav {
+    align-content: start;
     gap: 10px;
   }
 
   .app-shell .nav-item {
+    box-sizing: border-box;
+    grid-template-rows: 0 0;
+    height: 63px;
     min-height: 52px;
     padding: 12px 0;
     place-items: center;
@@ -3024,6 +3048,8 @@ body.is-portal-ready .journey-banner {
 
   .app-shell .sidebar:hover .nav-item,
   .app-shell.is-sidebar-expanded .nav-item {
+    grid-template-rows: auto auto;
+    height: auto;
     padding: 12px 14px;
     place-items: initial;
     justify-items: stretch;
@@ -7439,6 +7465,11 @@ body.is-reader-open {
   }
 
   .hero-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .hero-stage,
+  .app-shell .spotlight-card__content {
     grid-template-columns: 1fr;
   }
 
