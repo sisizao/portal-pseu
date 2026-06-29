@@ -2297,23 +2297,12 @@ body.is-portal-ready .journey-banner {
 
 .library-tile:hover::after,
 .library-tile:focus::after,
-.library-tile:focus-visible::after,
-.library-tile.is-active::after {
+.library-tile:focus-visible::after {
   opacity: 1;
   border-color: rgba(255, 255, 255, 0.62);
   box-shadow:
     inset 0 0 0 1px rgba(241, 209, 132, 0.18),
     0 0 22px rgba(241, 209, 132, 0.18);
-}
-
-.library-tile.is-active {
-  background:
-    linear-gradient(145deg, rgba(141, 92, 255, 0.12), rgba(255, 255, 255, 0.035)),
-    rgba(255, 255, 255, 0.04);
-  border-color: rgba(241, 209, 132, 0.28);
-  box-shadow:
-    inset 0 0 0 1px rgba(241, 209, 132, 0.12),
-    0 12px 32px rgba(0, 0, 0, 0.22);
 }
 
 .library-tile--featured {
@@ -2936,13 +2925,6 @@ body.is-portal-ready .journey-banner {
 .app-shell .library-tile:hover {
   border-color: rgba(241, 209, 132, 0.42);
   box-shadow: 0 20px 42px rgba(0, 0, 0, 0.32);
-}
-
-.app-shell .library-tile.is-active {
-  border-color: rgba(241, 209, 132, 0.3);
-  box-shadow:
-    inset 0 0 0 1px rgba(241, 209, 132, 0.1),
-    0 12px 30px rgba(0, 0, 0, 0.22);
 }
 
 .app-shell .library-tile--key-final {
