@@ -1116,6 +1116,259 @@ body.is-protected-portal .app-shell {
   line-height: 1.6;
 }
 
+.notebook-access {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  z-index: 78;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(211, 167, 90, 0.28);
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.16), rgba(65, 215, 199, 0.045)),
+    rgba(4, 4, 7, 0.86);
+  color: rgba(243, 240, 231, 0.88);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34), inset 2px 0 0 rgba(241, 209, 132, 0.5);
+  backdrop-filter: blur(18px);
+}
+
+.notebook-access span {
+  color: rgba(241, 209, 132, 0.82);
+  font-size: 1.02rem;
+}
+
+.notebook-access strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+body.is-reader-open.is-portal-unlocked .notebook-access {
+  display: inline-flex;
+}
+
+body.is-notebook-open .notebook-access {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.is-notebook-open {
+  overflow: hidden;
+}
+
+.traversal-notebook {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  pointer-events: none;
+}
+
+.traversal-notebook[hidden] {
+  display: none;
+}
+
+.traversal-notebook__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(211, 167, 90, 0.11), transparent 18rem),
+    rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 0.24s ease;
+}
+
+.traversal-notebook.is-open .traversal-notebook__backdrop {
+  opacity: 1;
+}
+
+.traversal-notebook__panel {
+  grid-column: 2;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-width: 0;
+  padding: clamp(22px, 4vw, 34px);
+  border-left: 1px solid rgba(211, 167, 90, 0.24);
+  background:
+    linear-gradient(180deg, rgba(241, 209, 132, 0.048), transparent 22%),
+    radial-gradient(circle at 50% 0%, rgba(65, 215, 199, 0.06), transparent 18rem),
+    rgba(3, 3, 5, 0.96);
+  box-shadow: -28px 0 80px rgba(0, 0, 0, 0.42), inset 1px 0 0 rgba(255, 255, 255, 0.035);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 18px;
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  pointer-events: auto;
+}
+
+.traversal-notebook.is-open .traversal-notebook__panel {
+  transform: translateX(0);
+}
+
+.traversal-notebook__header,
+.traversal-notebook__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.traversal-notebook__header span,
+.traversal-notebook__context span,
+.traversal-notebook__field span,
+.traversal-notebook__footer span {
+  color: rgba(241, 209, 132, 0.62);
+  font-size: 0.7rem;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.traversal-notebook__header h2 {
+  margin: 5px 0 0;
+  color: rgba(243, 240, 231, 0.94);
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.traversal-notebook__close {
+  appearance: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(211, 167, 90, 0.22);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(243, 240, 231, 0.86);
+  font-size: 1.28rem;
+}
+
+.traversal-notebook__context {
+  padding: 16px;
+  border: 1px solid rgba(211, 167, 90, 0.16);
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.07), transparent),
+    rgba(0, 0, 0, 0.22);
+  display: grid;
+  gap: 6px;
+}
+
+.traversal-notebook__context strong {
+  color: rgba(243, 240, 231, 0.92);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.traversal-notebook__context small {
+  color: rgba(236, 228, 211, 0.54);
+  line-height: 1.45;
+}
+
+.traversal-notebook__field {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.traversal-notebook__field textarea {
+  width: 100%;
+  min-height: 320px;
+  height: 100%;
+  resize: none;
+  border: 1px solid rgba(211, 167, 90, 0.18);
+  border-radius: 0;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 26%),
+    rgba(0, 0, 0, 0.24);
+  color: rgba(246, 241, 229, 0.92);
+  font: inherit;
+  line-height: 1.68;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.018);
+}
+
+.traversal-notebook__field textarea:focus {
+  border-color: rgba(241, 209, 132, 0.48);
+  box-shadow: 0 0 0 1px rgba(241, 209, 132, 0.12), 0 0 32px rgba(211, 167, 90, 0.08);
+}
+
+.traversal-notebook__field textarea::placeholder {
+  color: rgba(236, 228, 211, 0.36);
+}
+
+.traversal-notebook__footer {
+  border-top: 1px solid rgba(211, 167, 90, 0.14);
+  padding-top: 16px;
+}
+
+.traversal-notebook__footer span {
+  color: rgba(236, 228, 211, 0.56);
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.traversal-notebook__footer button {
+  appearance: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(211, 167, 90, 0.22);
+  border-radius: 0;
+  background: rgba(211, 167, 90, 0.08);
+  color: rgba(243, 240, 231, 0.82);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.traversal-notebook__close:hover,
+.traversal-notebook__footer button:hover,
+.notebook-access:hover {
+  border-color: rgba(241, 209, 132, 0.5);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .notebook-access {
+    right: 12px;
+    top: 12px;
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .traversal-notebook {
+    grid-template-columns: 1fr;
+  }
+
+  .traversal-notebook__panel {
+    grid-column: 1;
+    width: 100%;
+    padding: 22px 18px;
+    border-left: 0;
+    border-top: 1px solid rgba(211, 167, 90, 0.22);
+  }
+
+  .traversal-notebook__footer {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .traversal-notebook__footer button {
+    width: 100%;
+  }
+}
+
 .workspace {
   min-width: 0;
   display: grid;
@@ -2294,6 +2547,10 @@ body.is-portal-ready .journey-banner {
 
   .app-shell .nav-item:nth-child(3)::after {
     content: "03";
+  }
+
+  .app-shell .nav-item:nth-child(4)::after {
+    content: "04";
   }
 
   .app-shell .sidebar:hover .nav-item,

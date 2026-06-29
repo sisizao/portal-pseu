@@ -47,6 +47,11 @@
       watch: {},
       seeking: false,
     },
+    traversalNotebook: {
+      version: 1,
+      entries: {},
+      activeBookId: "",
+    },
     continuity: {
       version: 1,
       lastFunnelStage: 1,
@@ -63,6 +68,7 @@
   const funnelControlsTimers = new Map();
   const funnelProgressSavedAt = new Map();
   const CONTINUITY_STORAGE_KEY = "pseu.portal.continuity.v1";
+  const TRAVERSAL_NOTEBOOK_STORAGE_KEY = "pseu.portal.traversalNotebook.v1";
   const FUNNEL_PROGRESS_SAVE_MS = 3500;
   const FRAGMENT_BOOK_ID = "despertar";
   const FRAGMENT_ALLOWED_PAGES = [3, 13, 19, 31, 51];
@@ -268,6 +274,14 @@
     missionProgress: document.querySelector("[data-mission-progress]"),
     personalArchiveList: document.querySelector("[data-personal-archive-list]"),
     observerLog: document.querySelector("[data-observer-log]"),
+    notebookDrawer: document.querySelector("[data-traversal-notebook]"),
+    notebookOpenButtons: document.querySelectorAll("[data-notebook-open]"),
+    notebookCloseButtons: document.querySelectorAll("[data-notebook-close]"),
+    notebookBookTitle: document.querySelector("[data-notebook-book-title]"),
+    notebookMeta: document.querySelector("[data-notebook-meta]"),
+    notebookText: document.querySelector("[data-notebook-text]"),
+    notebookStatus: document.querySelector("[data-notebook-status]"),
+    notebookPageButton: document.querySelector("[data-notebook-page]"),
   };
 
   const saved = readSavedState();
@@ -298,6 +312,7 @@
     state.portalUnlocked = localStorage.getItem("pseu.portal.unlocked") === "1";
   }
   state.continuity = readContinuityState();
+  state.traversalNotebook = readTraversalNotebook();
 
   if (isProtectedPortalPath()) {
     state.portalUnlocked = true;
@@ -429,6 +444,10 @@
     els.fragmentCloseButtons.forEach((button) => button.addEventListener("click", closeFragmentReader));
     els.fragmentPrev?.addEventListener("click", () => navigateFragmentEcho(-1));
     els.fragmentNext?.addEventListener("click", () => navigateFragmentEcho(1));
+    els.notebookOpenButtons.forEach((button) => button.addEventListener("click", () => openTraversalNotebook()));
+    els.notebookCloseButtons.forEach((button) => button.addEventListener("click", closeTraversalNotebook));
+    els.notebookText?.addEventListener("input", handleTraversalNotebookInput);
+    els.notebookPageButton?.addEventListener("click", markTraversalNotebookPage);
 
     els.focusFrame?.addEventListener("pointermove", handleTilt);
     els.focusFrame?.addEventListener("pointerleave", resetTilt);
@@ -478,6 +497,18 @@
 
     document.addEventListener("keydown", (event) => {
       if (event.defaultPrevented) return;
+
+      if (isTraversalNotebookOpen()) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeTraversalNotebook();
+        }
+        if (event.key === "Tab") {
+          trapTraversalNotebookFocus(event);
+        }
+        return;
+      }
+
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
 
       if (els.recoveredArchiveScreen && !els.recoveredArchiveScreen.hidden) {
@@ -653,6 +684,10 @@
     window.PSEU_BOOK_DIAGNOSTICS?.setActiveBook?.(book);
     if (!fragmentScope && options.trackHistory !== false) {
       touchLastOpenedBook(book, state.activePage);
+    }
+    if (!fragmentScope && isTraversalNotebookOpen()) {
+      state.traversalNotebook.activeBookId = book.id;
+      renderTraversalNotebook();
     }
     if (!fragmentScope) saveState();
     renderOperations();
@@ -4029,6 +4064,168 @@
     els.libraryNotes.forEach((note) => {
       note.textContent = getLibraryMicrocopy(book, overall);
     });
+  }
+
+  function readTraversalNotebook() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(TRAVERSAL_NOTEBOOK_STORAGE_KEY) || "{}");
+      return {
+        version: 1,
+        entries: parsed.entries && typeof parsed.entries === "object" ? parsed.entries : {},
+        activeBookId: typeof parsed.activeBookId === "string" ? parsed.activeBookId : "",
+      };
+    } catch {
+      return {
+        version: 1,
+        entries: {},
+        activeBookId: "",
+      };
+    }
+  }
+
+  function saveTraversalNotebook() {
+    try {
+      localStorage.setItem(TRAVERSAL_NOTEBOOK_STORAGE_KEY, JSON.stringify(state.traversalNotebook));
+    } catch (error) {
+      console.warn("[PSEU] Nao foi possivel preservar o Caderno de Travessia.", error);
+    }
+  }
+
+  function isTraversalNotebookOpen() {
+    return Boolean(els.notebookDrawer && !els.notebookDrawer.hidden);
+  }
+
+  function getTraversalNotebookBook() {
+    const activeBookId = state.traversalNotebook.activeBookId || getCurrentBook()?.id || "";
+    return books.find((book) => book.id === activeBookId) || getCurrentBook() || books[0] || null;
+  }
+
+  function getTraversalNotebookEntry(book) {
+    if (!book?.id) return null;
+    state.traversalNotebook.entries = state.traversalNotebook.entries || {};
+    state.traversalNotebook.entries[book.id] = state.traversalNotebook.entries[book.id] || {
+      text: "",
+      page: null,
+      updatedAt: null,
+    };
+    return state.traversalNotebook.entries[book.id];
+  }
+
+  function formatTraversalNotebookDate(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function updateTraversalNotebookStatus(entry) {
+    if (!els.notebookStatus) return;
+    const text = String(entry?.text || "").trim();
+    if (!text) {
+      els.notebookStatus.textContent = "O Caderno permanece em silêncio.";
+      return;
+    }
+
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const updatedAt = formatTraversalNotebookDate(entry.updatedAt);
+    els.notebookStatus.textContent = updatedAt
+      ? `${words} sinais preservados · ${updatedAt}`
+      : `${words} sinais preservados`;
+  }
+
+  function renderTraversalNotebook() {
+    if (!els.notebookDrawer) return;
+    const book = getTraversalNotebookBook();
+    if (!book) return;
+
+    state.traversalNotebook.activeBookId = book.id;
+    const entry = getTraversalNotebookEntry(book);
+    const savedPage = Number(entry?.page || 0);
+    const currentPage = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+
+    if (els.notebookBookTitle) els.notebookBookTitle.textContent = book.title;
+    if (els.notebookMeta) {
+      els.notebookMeta.textContent = savedPage
+        ? `Sinal marcado na página ${savedPage}. Página ativa: ${currentPage}.`
+        : `Página ativa: ${currentPage}. Nenhum ponto fixado neste arquivo.`;
+    }
+    if (els.notebookText && els.notebookText.value !== (entry?.text || "")) {
+      els.notebookText.value = entry?.text || "";
+    }
+    updateTraversalNotebookStatus(entry);
+  }
+
+  function openTraversalNotebook() {
+    if (!els.notebookDrawer) return;
+    const book = getCurrentBook();
+    if (book?.id && !isFragmentReaderScope(book)) {
+      state.traversalNotebook.activeBookId = book.id;
+    }
+
+    closeMobileDrawer();
+    renderTraversalNotebook();
+    els.notebookDrawer.hidden = false;
+    els.notebookDrawer.setAttribute("aria-hidden", "false");
+    els.body.classList.add("is-notebook-open");
+    window.requestAnimationFrame(() => {
+      els.notebookDrawer?.classList.add("is-open");
+      els.notebookText?.focus?.({ preventScroll: true });
+    });
+  }
+
+  function closeTraversalNotebook() {
+    if (!els.notebookDrawer) return;
+    els.notebookDrawer.classList.remove("is-open");
+    els.notebookDrawer.setAttribute("aria-hidden", "true");
+    els.body.classList.remove("is-notebook-open");
+    window.setTimeout(() => {
+      if (!els.notebookDrawer?.classList.contains("is-open")) {
+        els.notebookDrawer.hidden = true;
+      }
+    }, 280);
+  }
+
+  function trapTraversalNotebookFocus(event) {
+    const focusable = Array.from(els.notebookDrawer?.querySelectorAll("button, textarea, [href], input, select, [tabindex]:not([tabindex='-1'])") || [])
+      .filter((node) => !node.disabled && !node.hidden && node.tabIndex >= 0);
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function handleTraversalNotebookInput() {
+    const book = getTraversalNotebookBook();
+    const entry = getTraversalNotebookEntry(book);
+    if (!entry || !els.notebookText) return;
+
+    entry.text = els.notebookText.value;
+    entry.updatedAt = new Date().toISOString();
+    saveTraversalNotebook();
+    updateTraversalNotebookStatus(entry);
+  }
+
+  function markTraversalNotebookPage() {
+    const book = getTraversalNotebookBook();
+    const entry = getTraversalNotebookEntry(book);
+    if (!entry) return;
+
+    entry.page = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+    entry.updatedAt = new Date().toISOString();
+    saveTraversalNotebook();
+    renderTraversalNotebook();
   }
 
   function openReader() {

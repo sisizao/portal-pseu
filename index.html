@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portal PSEU | Biblioteca Viva</title>
-  <link rel="stylesheet" href="css/style.css?v=reader-hud-20260617c" />
+  <link rel="stylesheet" href="css/style.css?v=travessia-notebook-20260629a" />
 </head>
 <body>
   <div class="page-noise"></div>
@@ -501,6 +501,10 @@
           <span>Estação 03</span>
           <strong>Missões</strong>
         </button>
+        <button class="nav-item" type="button" data-notebook-open>
+          <span>Estação 04</span>
+          <strong>Caderno</strong>
+        </button>
       </nav>
 
       <section class="sidebar-card sidebar-progress">
@@ -742,6 +746,40 @@
     </main>
   </div>
 
+  <button class="notebook-access" type="button" data-notebook-open aria-label="Abrir Caderno de Travessia">
+    <span aria-hidden="true">⌁</span>
+    <strong>Caderno</strong>
+  </button>
+
+  <aside class="traversal-notebook" data-traversal-notebook role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="traversal-notebook-title" hidden>
+    <button class="traversal-notebook__backdrop" type="button" data-notebook-close aria-label="Fechar Caderno de Travessia" tabindex="-1"></button>
+    <section class="traversal-notebook__panel">
+      <header class="traversal-notebook__header">
+        <div>
+          <span>Caderno de Travessia</span>
+          <h2 id="traversal-notebook-title">Registro de campo</h2>
+        </div>
+        <button class="traversal-notebook__close" type="button" data-notebook-close aria-label="Fechar Caderno de Travessia">×</button>
+      </header>
+
+      <div class="traversal-notebook__context">
+        <span>Arquivo observado</span>
+        <strong data-notebook-book-title>Manual do Despertar</strong>
+        <small data-notebook-meta>Aguardando primeiro sinal.</small>
+      </div>
+
+      <label class="traversal-notebook__field">
+        <span>Observação do Operador</span>
+        <textarea data-notebook-text rows="12" spellcheck="true" placeholder="Registre aqui o que a travessia revelou neste arquivo."></textarea>
+      </label>
+
+      <footer class="traversal-notebook__footer">
+        <span data-notebook-status>O Caderno permanece em silêncio.</span>
+        <button type="button" data-notebook-page>Marcar página atual</button>
+      </footer>
+    </section>
+  </aside>
+
   <template id="library-tile-template">
     <button class="library-tile" type="button">
       <img class="library-tile__cover" alt="" loading="lazy" />
@@ -782,7 +820,7 @@
   <script src="js/atmosphere.js"></script>
   <script src="js/analytics.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="js/main.js?v=reader-hud-20260617c"></script>
+  <script src="js/main.js?v=travessia-notebook-20260629a"></script>
 </body>
 </html>
 
