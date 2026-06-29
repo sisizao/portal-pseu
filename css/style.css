@@ -619,12 +619,29 @@ body[data-theme="revelation"] .page-glow-left {
 }
 
 .preportal-page--call .continuity-whisper button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
   margin-top: 10px;
-  border: 0;
+  border: 1px solid rgba(215, 173, 96, 0.28);
+  border-radius: 4px;
+  padding: 10px 15px;
   color: #f5f1e8;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.035);
   text-transform: uppercase;
   letter-spacing: 0;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.preportal-page--call .continuity-whisper button:hover,
+.preportal-page--call .continuity-whisper button:focus-visible {
+  border-color: rgba(215, 173, 96, 0.52);
+  background: rgba(215, 173, 96, 0.08);
+  transform: translateY(-1px);
 }
 
 .preportal-page--call .preportal-call__actions {
@@ -917,12 +934,23 @@ body.is-protected-portal .app-shell {
 .sidebar-close {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   color: #fff;
   place-items: center;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.sidebar-close:hover,
+.sidebar-close:focus-visible {
+  border-color: rgba(215, 173, 96, 0.42);
+  background: rgba(215, 173, 96, 0.08);
+  transform: translateY(-1px);
 }
 
 .sidebar::before {
@@ -1370,7 +1398,7 @@ body.is-notebook-open {
 
 .traversal-notebook__footer button {
   appearance: none;
-  min-height: 38px;
+  min-height: 42px;
   padding: 0 14px;
   border: 1px solid rgba(211, 167, 90, 0.22);
   border-radius: 0;
@@ -1459,6 +1487,7 @@ body.is-notebook-open {
 
 .search-shell input {
   width: 100%;
+  min-height: 42px;
   border: 0;
   outline: none;
   color: var(--text);
@@ -1874,6 +1903,88 @@ body.is-portal-ready .journey-banner {
   color: var(--amber);
 }
 
+.recent-accesses {
+  display: grid;
+  gap: 12px;
+}
+
+.recent-accesses__heading {
+  display: grid;
+  gap: 6px;
+}
+
+.recent-accesses__heading p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.recent-accesses__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.recent-access {
+  appearance: none;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(211, 167, 90, 0.14);
+  border-radius: 0;
+  color: rgba(245, 238, 226, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    rgba(255, 255, 255, 0.028);
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.recent-access:hover,
+.recent-access:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(241, 209, 132, 0.34);
+  background-color: rgba(211, 167, 90, 0.055);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+.recent-access__number,
+.recent-access__mark {
+  color: rgba(241, 209, 132, 0.76);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.recent-access__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.recent-access__copy strong,
+.recent-access__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-access__copy strong {
+  color: rgba(245, 238, 226, 0.92);
+  font-size: 0.88rem;
+}
+
+.recent-access__copy small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .operation-grid {
   display: grid;
   grid-template-columns: minmax(260px, 1.04fr) repeat(3, minmax(210px, 0.92fr));
@@ -2110,7 +2221,7 @@ body.is-portal-ready .journey-banner {
 .my-records-toolbar select,
 .my-records-toolbar input {
   width: 100%;
-  min-height: 38px;
+  min-height: 42px;
   border: 1px solid rgba(211, 167, 90, 0.16);
   border-radius: 0;
   background:
@@ -7275,6 +7386,10 @@ body.is-reader-open {
   }
 
   .operation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-accesses__list {
     grid-template-columns: 1fr;
   }
 
