@@ -3636,7 +3636,7 @@
     if (isPrivatePdfMissing(book)) {
       return `Proposta: ${proposal} Estado: Arquivo protegido ainda não provisionado.`;
     }
-    if (book.available === false || book.status === "em breve" || book.status === "locked") {
+    if (book.available === false || book.status === "locked") {
       const stateCopy = book.number === 18
         ? "Arquivo final selado. A última peça permanece preservada até a hora certa."
         : "Arquivo selado. O Centro preserva esta travessia para quando o conteúdo final for provisionado.";

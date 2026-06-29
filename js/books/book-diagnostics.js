@@ -24,7 +24,7 @@
   function isAvailableBook(book) {
     if (!book) return false;
     if (typeof book.available === "boolean") return book.available;
-    return book.status !== "em breve" && book.status !== "unavailable" && book.status !== "draft";
+    return book.status !== "locked" && book.status !== "unavailable" && book.status !== "draft";
   }
 
   function normalizeList(value) {
@@ -90,7 +90,7 @@
     if (isAvailableBook(book)) {
       if (missing.includes("pdf")) errors.push("pdf ausente");
     } else {
-      if (missing.includes("pdf")) warnings.push("pdf ausente para livro em breve");
+      if (missing.includes("pdf")) warnings.push("pdf ausente para arquivo selado");
     }
 
     return { errors, warnings };

@@ -82,7 +82,8 @@
     const order = Number.isFinite(Number(raw.order)) ? Number(raw.order) : number;
     const progress = Number.isFinite(Number(raw.progress)) ? Number(raw.progress) : 0;
     const status = normalizeText(raw.status || (raw.available === false ? "unavailable" : "available"));
-    const available = typeof raw.available === "boolean" ? raw.available : status !== "em breve" && status !== "unavailable" && status !== "draft";
+    const unavailableStatuses = new Set(["locked", "unavailable", "draft"]);
+    const available = typeof raw.available === "boolean" ? raw.available : !unavailableStatuses.has(status);
     const featured = typeof raw.featured === "boolean" ? raw.featured : order > 0 && order <= 2;
     const atmosphere = normalizeAtmosphere(raw.atmosphere);
     const theme = normalizeTheme(raw.theme, raw);
