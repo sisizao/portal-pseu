@@ -478,6 +478,18 @@
   </main>
 
   <div class="app-shell" id="portal-interno">
+    <div class="portal-boot-overlay" aria-hidden="true">
+      <div class="portal-boot-overlay__frame">
+        <span class="portal-boot-overlay__code">PSEU / CENTRO-04</span>
+        <div class="portal-boot-overlay__sequence">
+          <span>Conexão estabelecida</span>
+          <span>Operador reconhecido</span>
+          <span>Sincronizando registros</span>
+          <span>Centro operacional pronto</span>
+        </div>
+      </div>
+    </div>
+
     <aside class="sidebar">
       <button class="sidebar-close" type="button" data-mobile-drawer-close aria-label="Fechar menu">×</button>
       <a class="brand brand--sidebar" href="#top" aria-label="Portal PSEU">
@@ -551,6 +563,11 @@
         <span></span>
         <small>Operador reconhecido</small>
       </div>
+      <div class="ops-ribbon" aria-hidden="true">
+        <span>PSEU / ARQUIVO LOCAL</span>
+        <span>Nível de acesso reservado</span>
+        <span>Registro do Observador ativo</span>
+      </div>
 
       <section class="hero-stage" id="inicio">
         <article class="spotlight-card" data-focus-frame>
@@ -560,6 +577,11 @@
               <span class="eyebrow">Centro de Operações</span>
               <h1 data-hero-title>Manual do Despertar</h1>
               <p data-hero-copy>O primeiro portal da travessia. A entrada em que a obra se abre e o ritmo começa a tomar forma.</p>
+              <div class="spotlight-operational-strip" aria-hidden="true">
+                <span data-hero-operational-id>ARQ-001 / DESPERTAR</span>
+                <span>ACESSO: OPERADOR</span>
+                <span>CANAL: LOCAL</span>
+              </div>
               <div class="spotlight-actions">
                 <button class="button button--primary" type="button" data-action="open">Abrir arquivo</button>
                 <button class="button button--ghost" type="button" data-action="continue">Retomar travessia</button>
@@ -585,16 +607,19 @@
         <aside class="hero-aside">
           <article class="signal-card signal-card--teal">
             <span class="signal-card__label">Operador</span>
+            <span class="signal-card__seal">NÍVEL 04</span>
             <strong data-last-activity-title>Ativo</strong>
             <p data-last-activity-copy>entrada interna estabilizada</p>
           </article>
           <article class="signal-card signal-card--violet">
             <span class="signal-card__label">Arquivos Pessoais</span>
+            <span class="signal-card__seal">COFRE LOCAL</span>
             <strong data-portal-memory-count>Em silêncio</strong>
             <p data-portal-memory-copy>o primeiro sinal nascerá durante a leitura</p>
           </article>
           <article class="signal-card signal-card--amber">
             <span class="signal-card__label">Registro</span>
+            <span class="signal-card__seal">OBSERVADOR</span>
             <strong data-last-record-title>Vivo</strong>
             <p data-last-record-copy>observação local preservada</p>
           </article>
@@ -725,6 +750,7 @@
         <div class="operation-grid" data-operation-grid>
           <article class="operation-panel operation-panel--mission">
             <span class="eyebrow">Missão ativa</span>
+            <span class="operation-panel__seal">ESTAÇÃO / ATIVA</span>
             <h3 data-mission-title>Retomar arquivo inicial</h3>
             <p data-mission-copy>O Centro aguarda o próximo avanço da travessia.</p>
             <div class="mission-meter" aria-hidden="true">
@@ -736,16 +762,19 @@
 
           <article class="operation-panel">
             <span class="eyebrow">Arquivos Pessoais</span>
+            <span class="operation-panel__seal">COFRE / LOCAL</span>
             <div class="personal-archive-list" data-personal-archive-list></div>
           </article>
 
           <article class="operation-panel">
             <span class="eyebrow">Registro do Observador</span>
+            <span class="operation-panel__seal">CAMPO / VIVO</span>
             <div class="observer-log" data-observer-log></div>
           </article>
 
           <article class="operation-panel operation-panel--records">
             <span class="eyebrow">Meus Registros</span>
+            <span class="operation-panel__seal">MEMÓRIA / LOCAL</span>
             <div class="my-records-toolbar" aria-label="Filtros de registros">
               <label>
                 <span>Arquivo</span>

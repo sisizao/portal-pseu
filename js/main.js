@@ -250,6 +250,7 @@
     heroTitle: document.querySelector("[data-hero-title]"),
     heroCopy: document.querySelector("[data-hero-copy]"),
     heroPhrase: document.querySelector("[data-hero-phrase]"),
+    heroOperationalId: document.querySelector("[data-hero-operational-id]"),
     heroCover: document.querySelector("[data-hero-cover]"),
     bookProgress: document.querySelector("[data-book-progress]"),
     readerSubtitle: document.querySelector("[data-reader-subtitle]"),
@@ -829,6 +830,11 @@
     els.heroTitle.textContent = book.title;
     els.heroCopy.textContent = book.summary;
     els.heroPhrase.textContent = book.phrase;
+    if (els.heroOperationalId) {
+      const number = Number.isFinite(Number(book.number)) ? Number(book.number) : state.activeIndex + 1;
+      const fileCode = String(book.id || book.title || "arquivo").replace(/-/g, " ").toUpperCase();
+      els.heroOperationalId.textContent = `ARQ-${String(number).padStart(3, "0")} / ${fileCode}`;
+    }
     setProvisionedImage(els.heroCover, getProvisionedCoverSource(book), `Capa de ${book.title}`);
     els.bookProgress.style.width = `${getStoredBookProgress(book)}%`;
     updateReaderPulse(book, state.activePage);
@@ -4845,6 +4851,7 @@
   function startPortalEntrance() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     els.body.classList.add("is-portal-entering");
+    const entranceDelay = isProtectedPortalRoute() ? 1480 : 820;
 
     const finishEntrance = () => {
       els.body.classList.add("is-portal-ready");
@@ -4854,7 +4861,7 @@
       }
       window.setTimeout(() => {
         els.body.classList.remove("is-portal-entering");
-      }, 820);
+      }, entranceDelay);
     };
 
     window.requestAnimationFrame(() => {

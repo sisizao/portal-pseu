@@ -895,6 +895,128 @@ body[data-theme="revelation"] .page-glow-left {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   gap: 18px;
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-shell::before {
+  inset: 18px;
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(211, 167, 90, 0.04) 1px, transparent 1px);
+  background-size: 72px 72px;
+  opacity: 0.24;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 82%, transparent);
+}
+
+.app-shell::after {
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(241, 209, 132, 0.08), transparent 20rem),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 5px);
+  mix-blend-mode: screen;
+  opacity: 0.18;
+}
+
+.app-shell > .sidebar,
+.app-shell > .workspace {
+  position: relative;
+  z-index: 1;
+}
+
+.portal-boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  color: rgba(243, 240, 231, 0.92);
+  background:
+    radial-gradient(circle at 50% 44%, rgba(211, 167, 90, 0.11), transparent 22rem),
+    radial-gradient(circle at 50% 62%, rgba(65, 215, 199, 0.055), transparent 24rem),
+    rgba(2, 2, 4, 0.76);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.34s ease,
+    visibility 0.34s ease;
+}
+
+body.is-portal-entering .portal-boot-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+.portal-boot-overlay__frame {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid rgba(211, 167, 90, 0.28);
+  background:
+    linear-gradient(180deg, rgba(241, 209, 132, 0.052), transparent 38%),
+    rgba(3, 3, 5, 0.86);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.portal-boot-overlay__code {
+  display: block;
+  margin-bottom: 14px;
+  color: rgba(241, 209, 132, 0.72);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.portal-boot-overlay__sequence {
+  display: grid;
+  gap: 9px;
+}
+
+.portal-boot-overlay__sequence span {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  color: rgba(243, 240, 231, 0.84);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: portalBootLine 1.42s ease both;
+}
+
+.portal-boot-overlay__sequence span::before {
+  content: "";
+  width: 22px;
+  height: 1px;
+  margin-right: 10px;
+  background: rgba(241, 209, 132, 0.58);
+  box-shadow: 0 0 12px rgba(241, 209, 132, 0.24);
+}
+
+.portal-boot-overlay__sequence span:nth-child(2) {
+  animation-delay: 0.22s;
+}
+
+.portal-boot-overlay__sequence span:nth-child(3) {
+  animation-delay: 0.44s;
+}
+
+.portal-boot-overlay__sequence span:nth-child(4) {
+  animation-delay: 0.68s;
+}
 }
 
 body.is-protected-portal .preportal,
@@ -1555,6 +1677,7 @@ body.is-notebook-open {
 
 .sidebar,
 .topbar,
+.ops-ribbon,
 .hero-stage,
 .spotlight-card,
 .hero-aside > .signal-card,
@@ -1579,6 +1702,13 @@ body.is-portal-entering .topbar {
   opacity: 0;
   transform: translateY(-14px) scale(0.992);
   filter: blur(12px) saturate(0.94);
+}
+
+body.is-portal-entering .ops-ribbon {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.996);
+  filter: blur(10px) saturate(0.94);
+  transition-delay: 90ms;
 }
 
 body.is-portal-entering .hero-stage {
@@ -1632,6 +1762,7 @@ body.is-portal-entering .journey-banner {
 
 body.is-portal-ready .sidebar,
 body.is-portal-ready .topbar,
+body.is-portal-ready .ops-ribbon,
 body.is-portal-ready .hero-stage,
 body.is-portal-ready .spotlight-card,
 body.is-portal-ready .hero-aside > .signal-card,
@@ -1642,6 +1773,25 @@ body.is-portal-ready .journey-banner {
   opacity: 1;
   transform: none;
   filter: none;
+}
+
+@keyframes portalBootLine {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+    filter: blur(5px);
+  }
+  24%,
+  82% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0.62;
+    transform: translateX(2px);
+    filter: blur(0);
+  }
 }
 
 @keyframes brandBreath {
@@ -1669,10 +1819,15 @@ body.is-portal-ready .journey-banner {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .portal-boot-overlay {
+    display: none;
+  }
+
   .mission-node,
   .personal-archive,
   .observer-entry,
   .my-record,
+  .portal-boot-overlay__sequence span,
   .traversal-notebook__footer strong {
     transition-duration: 0.01ms !important;
     animation: none !important;
@@ -2942,6 +3097,29 @@ body.is-portal-ready .journey-banner {
   color: rgba(241, 209, 132, 0.62);
 }
 
+.ops-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  color: rgba(243, 240, 231, 0.58);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ops-ribbon span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(211, 167, 90, 0.14);
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.075), transparent 72%),
+    rgba(0, 0, 0, 0.2);
+}
+
 .app-shell .hero-stage {
   grid-template-columns: minmax(0, 1fr) 230px;
   gap: 16px;
@@ -2960,6 +3138,31 @@ body.is-portal-ready .journey-banner {
 .app-shell .spotlight-card__content {
   padding: clamp(20px, 2.5vw, 30px);
   grid-template-columns: minmax(0, 1fr) 235px;
+}
+
+.spotlight-operational-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  color: rgba(243, 240, 231, 0.62);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.spotlight-operational-strip span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 1px solid rgba(211, 167, 90, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell .spotlight-copy h1,
@@ -3066,12 +3269,83 @@ body.is-portal-ready .journey-banner {
   border-color: rgba(211, 167, 90, 0.16);
 }
 
+.app-shell .signal-card,
+.app-shell .operation-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-shell .signal-card::before,
+.app-shell .operation-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 8%, rgba(241, 209, 132, 0.09) 8.2%, transparent 8.6% 91%, rgba(65, 215, 199, 0.055) 91.2%, transparent 91.6%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 8px);
+  opacity: 0.34;
+}
+
+.app-shell .signal-card::after,
+.app-shell .operation-panel::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 12px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(241, 209, 132, 0.44), transparent 56%, rgba(65, 215, 199, 0.22));
+  opacity: 0.5;
+}
+
+.signal-card__seal,
+.operation-panel__seal {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  max-width: 46%;
+  padding: 3px 6px;
+  border: 1px solid rgba(211, 167, 90, 0.18);
+  color: rgba(241, 209, 132, 0.68);
+  background: rgba(0, 0, 0, 0.32);
+  font-size: 0.54rem;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.app-shell .signal-card > :not(.signal-card__seal),
+.app-shell .operation-panel > :not(.operation-panel__seal) {
+  position: relative;
+  z-index: 1;
+}
+
 .app-shell .operation-panel {
   border-radius: 0;
   border-color: rgba(211, 167, 90, 0.15);
   background:
     linear-gradient(180deg, rgba(241, 209, 132, 0.035), transparent 22%),
     rgba(4, 4, 6, 0.88);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(241, 209, 132, 0.035);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.app-shell .operation-panel:hover,
+.app-shell .operation-panel:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(241, 209, 132, 0.28);
+  box-shadow:
+    0 28px 68px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(241, 209, 132, 0.06);
 }
 
 .app-shell .operation-panel--mission {
@@ -7261,6 +7535,33 @@ body.is-reader-open {
     gap: 12px;
   }
 
+  .portal-boot-overlay {
+    padding: 16px;
+  }
+
+  .portal-boot-overlay__frame {
+    padding: 18px;
+  }
+
+  .portal-boot-overlay__sequence span {
+    min-height: 24px;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+  }
+
+  .ops-ribbon,
+  .spotlight-operational-strip {
+    gap: 6px;
+    font-size: 0.56rem;
+    letter-spacing: 0.12em;
+  }
+
+  .ops-ribbon span,
+  .spotlight-operational-strip span {
+    min-height: 22px;
+    padding-inline: 7px;
+  }
+
   .sidebar,
   .topbar,
   .spotlight-card,
@@ -7276,6 +7577,14 @@ body.is-reader-open {
   .spotlight-cover {
     justify-self: start;
     width: min(100%, 220px);
+  }
+
+  .signal-card__seal,
+  .operation-panel__seal {
+    position: static;
+    justify-self: start;
+    max-width: 100%;
+    text-align: left;
   }
 
   .page-glow {
