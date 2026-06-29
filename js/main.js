@@ -177,6 +177,7 @@
     body: document.body,
     preportal: document.getElementById("funil"),
     appShell: document.getElementById("portal-interno"),
+    sidebar: document.querySelector(".sidebar"),
     readerLayout: document.getElementById("leitura"),
     readerContent: document.querySelector(".reader-content"),
     readerControls: document.querySelector("[data-reader-controls]"),
@@ -340,6 +341,13 @@
     els.mobileDrawerOpen?.addEventListener("click", openMobileDrawer);
     els.mobileDrawerClose?.addEventListener("click", closeMobileDrawer);
     els.mobileDrawerBackdrop?.addEventListener("click", closeMobileDrawer);
+    els.sidebar?.addEventListener("pointerenter", expandOperationsSidebar);
+    els.sidebar?.addEventListener("pointerleave", collapseOperationsSidebar);
+    els.sidebar?.addEventListener("focusin", expandOperationsSidebar);
+    els.sidebar?.addEventListener("focusout", (event) => {
+      if (els.sidebar?.contains(event.relatedTarget)) return;
+      collapseOperationsSidebar();
+    });
 
     els.funnelPlayButtons.forEach((button) => {
       button.addEventListener("click", () => toggleFunnelVideo(button.dataset.funnelPlay));
@@ -443,7 +451,12 @@
     els.readerFavorite?.addEventListener("click", handleReaderFavorite);
     els.readerMark?.addEventListener("click", handleReaderBookmark);
 
-    window.addEventListener("resize", syncFunnelMedia, { passive: true });
+    window.addEventListener("resize", () => {
+      if (!isDesktopOperationsSidebar()) {
+        els.appShell?.classList.remove("is-sidebar-expanded");
+      }
+      syncFunnelMedia();
+    }, { passive: true });
     window.addEventListener("orientationchange", syncFunnelMedia);
 
     const handleReaderFrameLoad = (event) => {
@@ -2648,7 +2661,22 @@
     if (video.paused) toggleFunnelVideo(key);
   }
 
+  function isDesktopOperationsSidebar() {
+    return window.matchMedia("(min-width: 1181px)").matches;
+  }
+
+  function expandOperationsSidebar() {
+    if (!isDesktopOperationsSidebar()) return;
+    els.appShell?.classList.add("is-sidebar-expanded");
+  }
+
+  function collapseOperationsSidebar() {
+    if (!isDesktopOperationsSidebar()) return;
+    els.appShell?.classList.remove("is-sidebar-expanded");
+  }
+
   function openMobileDrawer() {
+    els.appShell?.classList.remove("is-sidebar-expanded");
     els.body.classList.add("is-sidebar-open");
     els.mobileDrawerBackdrop?.removeAttribute("hidden");
   }

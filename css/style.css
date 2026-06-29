@@ -17,6 +17,7 @@
   --radius: 22px;
   --radius-sm: 14px;
   --sidebar-w: 280px;
+  --sidebar-closed-w: 76px;
   --shell: min(1600px, calc(100% - 40px));
 }
 
@@ -2176,6 +2177,173 @@ body.is-portal-ready .journey-banner {
   background:
     conic-gradient(from 180deg, rgba(211, 167, 90, 0.78) 0 23%, rgba(255, 255, 255, 0.08) 23% 100%);
   box-shadow: 0 0 0 1px rgba(211, 167, 90, 0.18), 0 0 26px rgba(211, 167, 90, 0.08);
+}
+
+@media (min-width: 1181px) {
+  .app-shell {
+    grid-template-columns: var(--sidebar-closed-w) minmax(0, 1fr);
+    transition: grid-template-columns 0.34s ease;
+  }
+
+  .app-shell:has(.sidebar:hover),
+  .app-shell.is-sidebar-expanded {
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+
+  .app-shell .sidebar {
+    z-index: 30;
+    width: var(--sidebar-closed-w);
+    padding: 14px 12px;
+    gap: 14px;
+    grid-template-rows: auto auto 0 0;
+    transition:
+      width 0.34s ease,
+      padding 0.34s ease,
+      border-color 0.34s ease,
+      box-shadow 0.34s ease;
+  }
+
+  .app-shell .sidebar:hover,
+  .app-shell.is-sidebar-expanded .sidebar {
+    width: 100%;
+    padding: 20px;
+    grid-template-rows: auto auto 1fr auto;
+    border-color: rgba(211, 167, 90, 0.28);
+    box-shadow:
+      0 30px 82px rgba(0, 0, 0, 0.42),
+      inset 0 0 0 1px rgba(241, 209, 132, 0.04);
+  }
+
+  .app-shell .brand--sidebar {
+    width: 100%;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .app-shell .sidebar:hover .brand--sidebar,
+  .app-shell.is-sidebar-expanded .brand--sidebar {
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  .app-shell .brand-text,
+  .app-shell .nav-item span,
+  .app-shell .nav-item strong,
+  .app-shell .sidebar-card {
+    opacity: 0;
+    transform: translateX(-8px);
+    transition:
+      opacity 0.18s ease,
+      transform 0.24s ease;
+  }
+
+  .app-shell .brand-text {
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .app-shell .sidebar:hover .brand-text,
+  .app-shell.is-sidebar-expanded .brand-text {
+    width: auto;
+  }
+
+  .app-shell .sidebar:hover .brand-text,
+  .app-shell.is-sidebar-expanded .brand-text,
+  .app-shell .sidebar:hover .nav-item span,
+  .app-shell.is-sidebar-expanded .nav-item span,
+  .app-shell .sidebar:hover .nav-item strong,
+  .app-shell.is-sidebar-expanded .nav-item strong,
+  .app-shell .sidebar:hover .sidebar-card,
+  .app-shell.is-sidebar-expanded .sidebar-card {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .app-shell .sidebar-nav {
+    gap: 10px;
+  }
+
+  .app-shell .nav-item {
+    min-height: 52px;
+    padding: 12px 0;
+    place-items: center;
+    justify-items: center;
+  }
+
+  .app-shell .nav-item::before {
+    inset: auto auto 8px 50%;
+    width: 18px;
+    height: 1px;
+    transform: translateX(-50%);
+  }
+
+  .app-shell .nav-item::after {
+    content: "01";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(241, 209, 132, 0.74);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+  }
+
+  .app-shell .nav-item:nth-child(2)::after {
+    content: "02";
+  }
+
+  .app-shell .nav-item:nth-child(3)::after {
+    content: "03";
+  }
+
+  .app-shell .sidebar:hover .nav-item,
+  .app-shell.is-sidebar-expanded .nav-item {
+    padding: 12px 14px;
+    place-items: initial;
+    justify-items: stretch;
+  }
+
+  .app-shell .sidebar:hover .nav-item::before,
+  .app-shell.is-sidebar-expanded .nav-item::before {
+    inset: 10px auto 10px 0;
+    width: 2px;
+    height: auto;
+    transform: none;
+  }
+
+  .app-shell .sidebar:hover .nav-item::after,
+  .app-shell.is-sidebar-expanded .nav-item::after {
+    opacity: 0;
+  }
+
+  .app-shell .sidebar-card {
+    max-height: 0;
+    min-height: 0;
+    padding: 0;
+    border-color: transparent;
+    pointer-events: none;
+    overflow: hidden;
+    transition:
+      opacity 0.18s ease,
+      transform 0.24s ease,
+      max-height 0.3s ease,
+      padding 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .app-shell .sidebar:hover .sidebar-card,
+  .app-shell.is-sidebar-expanded .sidebar-card {
+    max-height: 340px;
+    padding: 18px;
+    border-color: rgba(211, 167, 90, 0.14);
+    pointer-events: auto;
+    transition-delay: 0.08s;
+  }
+
+  .app-shell .sidebar:hover .sidebar-progress,
+  .app-shell.is-sidebar-expanded .sidebar-progress {
+    align-content: start;
+  }
 }
 
 .app-shell .topbar {
