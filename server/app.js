@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const path = require("path");
-const fs = require("fs");
 const express = require("express");
 const session = require("express-session");
 const connectPgSimple = require("connect-pg-simple");
@@ -12,6 +11,7 @@ const checkoutRoutes = require("./routes/checkout.routes");
 const gumroadRoutes = require("./routes/gumroad.routes");
 const aiPanelRoutes = require("./routes/ai-panel.routes");
 const portalRoutes = require("./routes/portal.routes");
+const { assetExistsSync, getPublicFragmentDescriptor } = require("./services/content-provisioning.service");
 
 const app = express();
 const PgSession = connectPgSimple(session);
@@ -30,17 +30,6 @@ const safeAssetExtensions = new Set([
   ".mov",
   ".srt",
 ]);
-const publicFragmentPdfs = new Map([
-  [
-    "/fragmentos/manual-do-despertar.pdf",
-    path.join(projectRoot, "livros", "o livro despertar", "Design sem nome.pdf"),
-  ],
-  [
-    "/livros/o livro despertar/Design sem nome.pdf",
-    path.join(projectRoot, "livros", "o livro despertar", "Design sem nome.pdf"),
-  ],
-]);
-
 function sendPublicFragmentFallback(res) {
   return res.status(404).type("html").send(`<!doctype html>
 <html lang="pt-BR">
@@ -103,23 +92,19 @@ function sendPublicFragmentFallback(res) {
 
 function sendPublicFragmentPdf(req, res, next) {
   const assetPath = decodeURIComponent(req.path || "");
-  const filePath = publicFragmentPdfs.get(assetPath);
-  if (!filePath) return next();
+  const fragment = getPublicFragmentDescriptor(assetPath);
+  if (!fragment) return next();
 
-  if (!filePath.startsWith(projectRoot)) {
-    return res.status(403).json({ error: "asset_forbidden" });
-  }
-
-  if (!fs.existsSync(filePath)) {
+  if (!assetExistsSync(fragment.absolutePath)) {
     return sendPublicFragmentFallback(res);
   }
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", 'inline; filename="fragmento-manual-do-despertar.pdf"');
+  res.setHeader("Content-Disposition", `inline; filename="${fragment.fileName}"`);
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "no-store");
 
-  return res.sendFile(filePath, (err) => {
+  return res.sendFile(fragment.absolutePath, (err) => {
     if (err && !res.headersSent) return next();
     return undefined;
   });

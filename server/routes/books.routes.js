@@ -2,6 +2,7 @@ const express = require("express");
 const requireAuth = require("../middleware/requireAuth");
 const { hasBookAccess, listActiveEntitlements } = require("../services/entitlement.service");
 const { findBook, mergeCatalogWithEntitlements } = require("../services/book-catalog.service");
+const { attachContentProvisioning } = require("../services/content-provisioning.service");
 const { assertProtectedPdfExists } = require("../services/pdf.service");
 
 const router = express.Router();
@@ -9,7 +10,7 @@ const router = express.Router();
 router.get("/", requireAuth, async (req, res, next) => {
   try {
     const entitlements = await listActiveEntitlements(req.session.userId);
-    const books = mergeCatalogWithEntitlements(entitlements);
+    const books = await attachContentProvisioning(mergeCatalogWithEntitlements(entitlements));
     return res.json({
       ok: true,
       books,

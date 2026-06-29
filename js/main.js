@@ -5,6 +5,7 @@
     ...book,
     atmosphere: { ...(book.atmosphere || {}) },
   }));
+  const contentProvisioning = window.PSEU_CONTENT_PROVISIONING || null;
 
   const state = {
     activeIndex: 0,
@@ -159,6 +160,7 @@
   const RECOVERED_ARCHIVE_UNLOCK_RATIO = 0.9;
   let recoveredArchiveNoticeTimer = 0;
   let checkoutConfigPromise = null;
+  let contentProvisioningRefreshTimer = 0;
 
   function trackAnalytics(eventName, options = {}) {
     window.PSEU_ANALYTICS?.track?.(eventName, options);
@@ -309,6 +311,7 @@
   }
   els.body.classList.toggle("is-portal-unlocked", state.portalUnlocked);
 
+  setupContentProvisioning();
   setupProtectedBooksBridge();
   startPortalEntrance();
   renderLibrary();
@@ -751,8 +754,7 @@
     els.heroTitle.textContent = book.title;
     els.heroCopy.textContent = book.summary;
     els.heroPhrase.textContent = book.phrase;
-    els.heroCover.src = toUrl(book.cover || coverAssets[book.number] || "");
-    els.heroCover.alt = `Capa de ${book.title}`;
+    setProvisionedImage(els.heroCover, getProvisionedCoverSource(book), `Capa de ${book.title}`);
     els.bookProgress.style.width = `${getStoredBookProgress(book)}%`;
     updateReaderPulse(book, state.activePage);
   }
@@ -2492,11 +2494,17 @@
     return Boolean(stored && Number.isFinite(Number(stored.page)));
   }
 
+  function isPrivatePdfMissing(book) {
+    const provision = book?.privatePdfProvisioning || book?.provisioning?.privatePdf;
+    return Boolean(book?.canRead && provision?.configured && provision.available === false);
+  }
+
   function getBookPresenceLabel(book, context = "portal") {
     if (context === "preportal" && book?.id !== FRAGMENT_BOOK_ID) return "Arquivo selado";
     if (context === "preportal" && book?.id === FRAGMENT_BOOK_ID) {
       return hasFragmentRead(book) ? "Fragmento lido" : "Fragmento liberado";
     }
+    if (isPrivatePdfMissing(book)) return "Arquivo protegido ainda não provisionado";
     if (!book?.available) return state.protectedBooks.loaded ? "Em desenvolvimento" : "Em breve";
     if (context === "preportal" && hasFragmentRead(book)) return "Fragmento lido";
     if (getStoredBookProgress(book) > 0) return "Em leitura";
@@ -3094,6 +3102,100 @@
     if (canUseDevFallback) return;
   }
 
+  function setupContentProvisioning() {
+    if (!contentProvisioning) return;
+
+    contentProvisioning.registerBooks(books, {
+      coverAssets,
+      backendBookIds: LOCAL_BOOK_ID_TO_BACKEND,
+      fragmentBookId: FRAGMENT_BOOK_ID,
+      fragmentSource: FRAGMENT_PDF_SOURCE,
+    });
+    contentProvisioning.registerVideos(FUNNEL_MEDIA);
+    syncContentProvisioningIntoBooks();
+
+    window.addEventListener(contentProvisioning.eventName || "pseu:content-provisioning-updated", handleContentProvisioningUpdate);
+    void contentProvisioning.verifyAll()
+      .then(() => {
+        syncContentProvisioningIntoBooks();
+        scheduleContentProvisioningRefresh();
+      })
+      .catch((error) => {
+        console.warn("[PSEU] Provisionamento de conteudo indisponivel.", error);
+      });
+  }
+
+  function handleContentProvisioningUpdate() {
+    syncContentProvisioningIntoBooks();
+    scheduleContentProvisioningRefresh();
+  }
+
+  function scheduleContentProvisioningRefresh() {
+    window.clearTimeout(contentProvisioningRefreshTimer);
+    contentProvisioningRefreshTimer = window.setTimeout(() => {
+      renderLibrary();
+      renderFunnelSection();
+      syncFunnelMedia();
+      const currentBook = getCurrentBook();
+      if (currentBook) {
+        updateHero(currentBook);
+        renderImageRail(currentBook);
+      }
+      refreshLibraryTiles();
+    }, 60);
+  }
+
+  function syncContentProvisioningIntoBooks() {
+    if (!contentProvisioning) return;
+
+    books.forEach((book) => {
+      const provision = getBookProvisioning(book);
+      if (!provision) return;
+
+      book.provisioning = {
+        ...(book.provisioning || {}),
+        ...provision,
+      };
+      book.provisionedCover = provision.cover?.source || book.provisionedCover || "";
+      book.fragmentProvisioning = provision.fragment || book.fragmentProvisioning || null;
+      book.privatePdfProvisioning = provision.privatePdf || book.privatePdfProvisioning || null;
+    });
+  }
+
+  function getBookProvisioning(book) {
+    if (!book?.id || !contentProvisioning) return null;
+    return contentProvisioning.book(book.id);
+  }
+
+  function getProvisionedCoverSource(book) {
+    if (!book) return "";
+    const provision = getBookProvisioning(book)?.cover || book.provisioning?.cover || null;
+    const fallback = coverAssets[book.number] || "";
+
+    if (provision?.available === true && provision.source) return provision.source;
+    if (provision?.available === false) return fallback && fallback !== provision.source ? fallback : "";
+    return provision?.source || book.provisionedCover || book.cover || fallback || "";
+  }
+
+  function setProvisionedImage(image, source, alt) {
+    if (!image) return;
+    image.alt = alt || "";
+
+    if (!source) {
+      image.removeAttribute("src");
+      image.hidden = true;
+      return;
+    }
+
+    image.hidden = false;
+    image.src = toUrl(source);
+  }
+
+  function getProvisionedVideoAsset(key, assetKey) {
+    const provision = contentProvisioning?.video(key);
+    return provision?.[assetKey] || null;
+  }
+
   function setupProtectedBooksBridge() {
     window.addEventListener("pseu:books-ready", (event) => {
       applyProtectedBooksPayload(event.detail);
@@ -3150,6 +3252,7 @@
         : [];
 
     if (!entries.length) return;
+    contentProvisioning?.applyProtectedBooksPayload?.(entries);
 
     const byId = {};
     entries.forEach((entry) => {
@@ -3164,6 +3267,7 @@
         source: entry.source || null,
         canRead: Boolean(entry.canRead),
         pdfEndpoint: entry.pdfEndpoint || null,
+        provisioning: entry.provisioning || {},
       };
     });
 
@@ -3171,6 +3275,7 @@
     state.protectedBooks.byId = byId;
 
     books.forEach(applyProtectedBookAccess);
+    syncContentProvisioningIntoBooks();
     syncActiveBookWithEntitlements();
     renderLibrary();
     updateProgressBadge(getCurrentBook());
@@ -3194,6 +3299,12 @@
     book.entitlementSource = entitlement?.source || null;
     book.canRead = canRead;
     book.pdfEndpoint = canRead ? entitlement?.pdfEndpoint || `/api/books/${encodeURIComponent(backendBookId)}/pdf` : "";
+    book.privatePdfProvisioning = entitlement?.provisioning?.privatePdf || book.privatePdfProvisioning || null;
+    book.provisioning = {
+      ...(book.provisioning || {}),
+      ...(getBookProvisioning(book) || {}),
+      ...(entitlement?.provisioning || {}),
+    };
     book.available = canRead;
     book.status = canRead ? "available" : "locked";
 
@@ -3220,6 +3331,9 @@
   function getBookCardDescription(book) {
     if (!book) return "";
     const proposal = book.summary || book.shortDescription || book.category || "Um arquivo da travessia PSEU.";
+    if (isPrivatePdfMissing(book)) {
+      return `Proposta: ${proposal} Estado: Arquivo protegido ainda não provisionado.`;
+    }
     if (book.available === false || book.status === "em breve" || book.status === "locked") {
       const stateCopy = book.number === 18
         ? "Arquivo final selado. A ultima peca permanece preservada ate a hora certa."
@@ -3253,8 +3367,7 @@
         node.setAttribute("aria-disabled", book.available ? "false" : "true");
         node.title = book.available ? `Abrir ${book.title}` : `${book.title} · Em desenvolvimento`;
         const cover = node.querySelector(".library-tile__cover");
-        cover.src = toUrl(book.cover || coverAssets[book.number] || "");
-        cover.alt = book.title;
+        setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
         node.querySelector(".library-tile__number").textContent = String(book.number).padStart(2, "0");
         node.querySelector(".library-tile__title").textContent = book.title;
         node.querySelector(".library-tile__mood").textContent = book.mood;
@@ -3302,11 +3415,10 @@
     const template = document.getElementById("image-template");
     els.imageStack.innerHTML = "";
 
-    const visuals = book.visuals?.length ? book.visuals : [{ src: book.cover || coverAssets[book.number] || "", title: book.title, label: "Fragmento visual" }];
+    const visuals = book.visuals?.length ? book.visuals : [{ src: getProvisionedCoverSource(book), title: book.title, label: "Fragmento visual" }];
     visuals.forEach((item) => {
       const node = template.content.firstElementChild.cloneNode(true);
-      node.querySelector("img").src = toUrl(item.src);
-      node.querySelector("img").alt = item.title || book.title;
+      setProvisionedImage(node.querySelector("img"), item.src, item.title || book.title);
       node.querySelector(".image-card__copy span").textContent = item.label || book.title;
       node.querySelector(".image-card__copy strong").textContent = item.title || book.title;
       els.imageStack.appendChild(node);
@@ -3405,8 +3517,7 @@
       node.setAttribute("aria-disabled", externalFragmentAvailable ? "false" : "true");
       node.title = externalFragmentAvailable ? `Ler fragmento de ${book.title}` : `${book.title} · Arquivo selado`;
       const cover = node.querySelector(".library-tile__cover");
-      cover.src = toUrl(book.cover || coverAssets[book.number] || "");
-      cover.alt = book.title;
+      setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
       cover.loading = "eager";
       cover.decoding = "async";
       node.querySelector(".library-tile__number").textContent = String(book.number).padStart(2, "0");
@@ -3787,6 +3898,7 @@
 
   function syncFunnelMedia() {
     const compact = window.matchMedia("(max-width: 800px)").matches;
+    const posterAssetKey = compact ? "posterMobile" : "posterDesktop";
     const media = {
       main: compact ? FUNNEL_MEDIA.main.posterMobile : FUNNEL_MEDIA.main.posterDesktop,
       offer: compact ? FUNNEL_MEDIA.offer.posterMobile : FUNNEL_MEDIA.offer.posterDesktop,
@@ -3796,11 +3908,18 @@
       const key = video.dataset.funnelVideo;
       const config = FUNNEL_MEDIA[key];
       if (!config) return;
-      const posterUrl = toUrl(media[key]);
+      const videoAsset = getProvisionedVideoAsset(key, "video");
+      const posterAsset = getProvisionedVideoAsset(key, posterAssetKey);
+      const posterSource = posterAsset?.available === true ? posterAsset.source : media[key];
+      const videoUnavailable = videoAsset?.available === false || (videoAsset?.available == null && Boolean(video.error));
+      const posterUrl = toUrl(posterSource);
       video.poster = posterUrl;
       video.closest(".funnel-vsl-stage")?.style.setProperty("--funnel-poster", `url("${posterUrl}")`);
-      setFunnelVideoUnavailable(video, Boolean(video.error));
-      if (!video.src) {
+      setFunnelVideoUnavailable(video, videoUnavailable);
+      if (videoUnavailable) {
+        video.removeAttribute("src");
+        video.load?.();
+      } else if (!video.src) {
         video.src = toUrl(config.video);
       }
       video.setAttribute("aria-label", `${config.title} - VSL PSEU`);
