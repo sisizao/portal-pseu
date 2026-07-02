@@ -61,8 +61,10 @@ Imagem do WhatsApp*.jpg
 *.mov
 *.MOV
 
-# Protected book files are provisioned outside Git
-private/pdfs/
+# Protected book files are provisioned outside Git, except temporary Reader release PDFs
+private/pdfs/*
+!private/pdfs/manual-do-despertar.pdf
+!private/pdfs/manual-do-lider-estoico.pdf
 
 # Lightweight book assets for Railway staging
 /livros/*
