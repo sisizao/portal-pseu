@@ -6,11 +6,11 @@ const projectRoot = path.resolve(__dirname, "../..");
 const PROTECTED_PDFS = {
   "manual-do-despertar": {
     fileName: "manual-do-despertar.pdf",
-    relativePath: "private/pdfs/manual-do-despertar.pdf",
+    relativePath: "protected/pdfs/manual-do-despertar.pdf",
   },
   "manual-do-lider-estoico": {
     fileName: "manual-do-lider-estoico.pdf",
-    relativePath: "private/pdfs/manual-do-lider-estoico.pdf",
+    relativePath: "protected/pdfs/manual-do-lider-estoico.pdf",
   },
 };
 
