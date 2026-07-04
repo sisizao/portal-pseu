@@ -2918,14 +2918,16 @@
   function updateContinuityUi() {
     updateFunnelResumeUi();
     const prompt = getContinuityPrompt();
-    if (!els.continuityWhisper || !els.continuityAction) return;
+    if (!els.continuityWhisper) return;
     els.continuityWhisper.hidden = !prompt;
     if (!prompt) return;
     if (els.continuityEyebrow) els.continuityEyebrow.textContent = prompt.eyebrow;
     if (els.continuityCopy) els.continuityCopy.textContent = prompt.copy;
-    els.continuityAction.textContent = prompt.label;
-    els.continuityAction.dataset.continuityAction = prompt.action;
-    els.continuityAction.dataset.continuityTarget = prompt.target || "";
+    if (els.continuityAction) {
+      els.continuityAction.textContent = prompt.label;
+      els.continuityAction.dataset.continuityAction = prompt.action;
+      els.continuityAction.dataset.continuityTarget = prompt.target || "";
+    }
   }
 
   function handleContinuityAction() {
