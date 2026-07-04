@@ -68,4 +68,4 @@ server/db/seed-dev.sql
 
 # Private PDFs are excluded by default. Mount them privately or remove this
 # rule explicitly only when the initial deployment has protected storage.
-private/pdfs/
+
