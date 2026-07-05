@@ -56,6 +56,13 @@ videos curtos/
 *.mp4
 *.mov
 *.MOV
+!PCL/assets/videos/
+!PCL/assets/videos/funnel/
+!PCL/assets/videos/funnel/atmosphere-loop.mp4
+!PCL/assets/videos/funnel/vsl-main.mp4
+!PCL/assets/videos/funnel/vsl-offer.mov
+!PCL/assets/videos/funnel/recovered-archive-01.mp4
+!PCL/assets/videos/funnel/recovered-archive-03.mov
 
 # Local administration and DEV-only data
 admin-local.html
@@ -68,4 +75,3 @@ server/db/seed-dev.sql
 
 # Private PDFs are excluded by default. Mount them privately or remove this
 # rule explicitly only when the initial deployment has protected storage.
-

@@ -60,6 +60,13 @@ Imagem do WhatsApp*.jpg
 *.mp4
 *.mov
 *.MOV
+!PCL/assets/videos/
+!PCL/assets/videos/funnel/
+!PCL/assets/videos/funnel/atmosphere-loop.mp4
+!PCL/assets/videos/funnel/vsl-main.mp4
+!PCL/assets/videos/funnel/vsl-offer.mov
+!PCL/assets/videos/funnel/recovered-archive-01.mp4
+!PCL/assets/videos/funnel/recovered-archive-03.mov
 
 # Protected book files are provisioned outside Git, except temporary Reader release PDFs
 private/pdfs/*

@@ -160,14 +160,14 @@
   const FUNNEL_MEDIA = {
     main: {
       title: "Travessia",
-      video: PREPORTAL_CONFIG.vsl?.main?.url || window.VSL_PRINCIPAL_URL || "0509 vsl 1 de cima Pseu.mp4",
+      video: PREPORTAL_CONFIG.vsl?.main?.url || window.VSL_PRINCIPAL_URL || "PCL/assets/videos/funnel/vsl-main.mp4",
       posterDesktop: PREPORTAL_CONFIG.vsl?.main?.posterDesktop || window.POSTER_VSL_PRINCIPAL || "PCL/assets/images/visuals/vsl-main-16x9.svg",
       posterMobile: PREPORTAL_CONFIG.vsl?.main?.posterMobile || window.POSTER_VSL_PRINCIPAL_MOBILE || "PCL/assets/images/visuals/vsl-main-9x16.svg",
       description: "Apresenta o portal, abre o contexto e cria conexão emocional antes da decisão.",
     },
     offer: {
       title: "Decisão",
-      video: PREPORTAL_CONFIG.vsl?.offer?.url || window.VSL_OFERTA_URL || "IMG_6166.MOV",
+      video: PREPORTAL_CONFIG.vsl?.offer?.url || window.VSL_OFERTA_URL || "PCL/assets/videos/funnel/vsl-offer.mov",
       posterDesktop: PREPORTAL_CONFIG.vsl?.offer?.posterDesktop || window.POSTER_VSL_OFERTA || "PCL/assets/images/visuals/vsl-offer-16x9.svg",
       posterMobile: PREPORTAL_CONFIG.vsl?.offer?.posterMobile || window.POSTER_VSL_OFERTA_MOBILE || "PCL/assets/images/visuals/vsl-offer-9x16.svg",
       description: "A camada mais direta, dourada e quieta. Um convite para entrar sem ruído.",
@@ -176,9 +176,9 @@
   window.PSEU_FUNNEL_CONFIG = FUNNEL_MEDIA;
   // Caminhos das transmissões recuperadas exibidas antes do acesso final.
   const RECOVERED_ARCHIVE_FILES = [
-    { index: 1, title: "ARQUIVO 01", status: "Transmissão recuperada / 01", video: "escesqueleto/IMG_6443video 1.MP4" },
+    { index: 1, title: "ARQUIVO 01", status: "Transmissão recuperada / 01", video: "PCL/assets/videos/funnel/recovered-archive-01.mp4" },
     { index: 2, title: "ARQUIVO 02", status: "Transmissão recuperada / 02", video: "escesqueleto/IMG_6445video 2.MP4" },
-    { index: 3, title: "ARQUIVO 03", status: "Transmissão recuperada / 03", video: "escesqueleto/IMG_6446video 3.MOV" },
+    { index: 3, title: "ARQUIVO 03", status: "Transmissão recuperada / 03", video: "PCL/assets/videos/funnel/recovered-archive-03.mov" },
   ];
   const RECOVERED_ARCHIVE_UNLOCK_RATIO = 0.9;
   let recoveredArchiveNoticeTimer = 0;

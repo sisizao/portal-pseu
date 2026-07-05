@@ -3,8 +3,8 @@
   window.FUNNEL_PAGE_2_CANVA_REFERENCE = "https://canva.link/cj5yod10y9cd6tq";
   window.FUNNEL_PAGE_3_CANVA_REFERENCE = "https://canva.link/6ws253y8cqhuc57";
 
-  window.VSL_PRINCIPAL_URL = "0509 vsl 1 de cima Pseu.mp4";
-  window.VSL_OFERTA_URL = "IMG_6166.MOV";
+  window.VSL_PRINCIPAL_URL = "PCL/assets/videos/funnel/vsl-main.mp4";
+  window.VSL_OFERTA_URL = "PCL/assets/videos/funnel/vsl-offer.mov";
 
   window.POSTER_VSL_PRINCIPAL = "PCL/assets/images/visuals/vsl-main-16x9.svg";
   window.POSTER_VSL_PRINCIPAL_MOBILE = "PCL/assets/images/visuals/vsl-main-9x16.svg";
