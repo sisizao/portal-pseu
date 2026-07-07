@@ -9447,3 +9447,805 @@ body.is-reader-debug .reader-hud {
     margin-top: 6px;
   }
 }
+
+/* MOBILE UX PASS 1: refinamentos exclusivos para tablet/mobile. */
+@media (max-width: 900px) {
+  .preportal-page--call .call-official__video {
+    object-position: 50% 18%;
+    transform: scale(1);
+  }
+
+  .preportal-page--call .call-official__scene--revelation {
+    min-height: min(78svh, 720px);
+    padding-top: clamp(56px, 11svh, 92px);
+    padding-bottom: clamp(52px, 10svh, 88px);
+  }
+
+  .preportal-page--call .preportal-call__copy h2 {
+    max-width: min(100%, 13ch);
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  .preportal-page--travessia .editorial-threshold--travessia {
+    display: grid;
+    align-content: end;
+    gap: 18px;
+  }
+
+  .preportal-page--travessia .editorial-threshold--travessia > p,
+  .preportal-page--travessia .editorial-threshold--travessia .travessia-entry-artifact__statement p,
+  .preportal-page--travessia .vsl-prologue p {
+    max-width: min(100%, 36rem);
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(14px, 3vw, 22px);
+    width: min(100%, 620px);
+    margin-inline: auto;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    min-height: clamp(240px, 48vw, 330px);
+    padding: clamp(12px, 3vw, 16px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__cover {
+    min-height: clamp(178px, 38vw, 260px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__title {
+    display: block;
+    font-size: clamp(0.78rem, 2.6vw, 0.98rem);
+    line-height: 1.08;
+  }
+
+  .preportal-page--library .editorial-threshold--library {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    padding-top: clamp(28px, 8vw, 52px);
+    padding-bottom: clamp(20px, 7vw, 42px);
+  }
+
+  .preportal-page--library .editorial-threshold--library > div,
+  .preportal-page--library .editorial-threshold--library p[data-library-note] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .preportal-page--library .editorial-threshold--library h2 {
+    width: 100%;
+    max-width: 11ch;
+    font-size: clamp(3.1rem, 14vw, 5.2rem);
+  }
+
+  .preportal-page--library .editorial-threshold--library p[data-library-note] {
+    max-width: 38rem;
+    justify-self: start;
+    padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid rgba(211, 167, 90, 0.28);
+  }
+
+  .preportal-page--library .editorial-breath--library {
+    width: 100%;
+    margin-inline: auto;
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .preportal-page--library .library-fragment {
+    width: min(100%, 620px);
+    grid-template-columns: minmax(132px, 0.42fr) minmax(0, 1fr);
+  }
+
+  .preportal-page--library .library-fragment__presence img {
+    width: min(210px, 100%);
+  }
+
+  .preportal-page--travessia .recovered-archives {
+    width: min(100%, 680px);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .preportal-page--call .call-official__scene {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .preportal-page--call .call-official__scene--revelation {
+    min-height: min(72svh, 620px);
+    padding-top: 58px;
+    padding-bottom: 62px;
+  }
+
+  .preportal-page--call .preportal-call {
+    width: min(100%, 420px);
+    padding: 16px 12px;
+  }
+
+  .preportal-page--call .preportal-call__copy {
+    gap: 12px;
+  }
+
+  .preportal-page--call .preportal-call__actions,
+  .preportal-page--call .preportal-call__footnote {
+    margin-top: 18px;
+  }
+
+  .preportal-page--call .preportal-call__manifesto {
+    gap: 4px;
+  }
+
+  .preportal-page--call .call-official__microcopy {
+    max-width: 27ch;
+  }
+
+  .preportal-page--travessia .editorial-threshold--travessia {
+    min-height: min(86svh, 680px);
+    padding: 22px 18px 30px;
+  }
+
+  .preportal-page--travessia .travessia-entry-artifact__statement {
+    align-self: end;
+  }
+
+  .preportal-page--travessia .travessia-entry-artifact__statement h2 {
+    margin-bottom: 10px;
+  }
+
+  .preportal-page--travessia .travessia-entry-artifact__statement p {
+    position: relative;
+    z-index: 3;
+    margin-top: 0;
+    padding: 10px 0 0;
+    border-top: 1px solid rgba(241, 209, 132, 0.28);
+    font-size: clamp(0.98rem, 4vw, 1.12rem);
+    line-height: 1.45;
+  }
+
+  .preportal-page--library {
+    padding-inline: 14px;
+  }
+
+  .preportal-page--library .library-official__archive {
+    width: 100%;
+    padding-inline: 0;
+  }
+
+  .preportal-page--library .library-archive__intro {
+    padding-inline: 4px;
+  }
+
+  .preportal-page--library .library-archive__intro h3,
+  .preportal-page--library .library-official__archive > .funnel-card__caption,
+  .preportal-page--library .library-manifesto {
+    width: 100%;
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    gap: 16px 12px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    min-height: clamp(228px, 62vw, 290px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__cover {
+    min-height: clamp(168px, 48vw, 230px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__mood {
+    font-size: clamp(0.68rem, 2.8vw, 0.78rem);
+  }
+
+  .preportal-page--library .library-fragment {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px 18px;
+  }
+
+  .preportal-page--library .library-fragment::after {
+    right: 14px;
+    top: 14px;
+    transform: none;
+  }
+
+  .preportal-page--library .library-fragment__presence {
+    justify-items: center;
+  }
+
+  .preportal-page--library .library-fragment__presence img {
+    width: min(230px, 72vw);
+  }
+
+  .preportal-page--library .library-fragment__copy {
+    gap: 12px;
+    text-align: left;
+  }
+
+  .preportal-page--library .library-fragment__copy h3,
+  .preportal-page--library .library-fragment__copy p,
+  .preportal-page--library .library-fragment__copy small {
+    max-width: 100%;
+  }
+
+  .preportal-page--library .library-fragment__open {
+    width: 100%;
+    min-height: 48px;
+    padding-inline: 14px;
+    font-size: 0.78rem;
+  }
+
+  .preportal-page--travessia .recovered-archives {
+    padding: 22px 18px;
+    margin-block: 28px;
+  }
+
+  .preportal-page--travessia .recovered-archives::before {
+    inset: 10px;
+  }
+
+  .preportal-page--travessia .recovered-archives::after,
+  .preportal-page--travessia .recovered-archives__gate::after {
+    display: none;
+  }
+
+  .preportal-page--travessia .recovered-archives__gate {
+    max-width: 100%;
+  }
+
+  .preportal-page--travessia .recovered-archives__gate h3 {
+    font-size: clamp(2.3rem, 14vw, 3.7rem);
+  }
+
+  .preportal-page--travessia .recovered-archives__enter {
+    width: 100%;
+    min-height: 50px;
+    padding-inline: 14px;
+  }
+
+  .recovered-archives__close {
+    top: 8px;
+    right: 8px;
+    z-index: 4;
+  }
+
+  .recovered-archives__transmission::before {
+    inset: -10px;
+  }
+
+  .recovered-archives__video {
+    max-width: min(100%, 360px);
+  }
+
+  body.is-reader-open.is-portal-unlocked .notebook-access {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(18px);
+  }
+
+  .reader-layout {
+    padding: 0;
+    background: rgba(2, 2, 5, 0.92);
+    backdrop-filter: none;
+  }
+
+  .reader-shell {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    padding: 10px;
+    background: rgba(3, 3, 6, 0.98);
+  }
+
+  .reader-book {
+    transform: none;
+  }
+
+  .reader-book__cover,
+  .reader-book__spread {
+    width: 100%;
+  }
+
+  .reader-page-shell {
+    min-height: min(78dvh, 720px);
+    border-radius: 14px;
+  }
+
+  .reader-hud {
+    top: 10px;
+    bottom: auto;
+    left: 10px;
+    right: 10px;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+  }
+
+  .reader-layout.is-controls-visible .reader-hud {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .reader-hud__panel {
+    width: calc(100vw - 64px);
+    max-width: none;
+    margin-left: 44px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: rgba(6, 5, 9, 0.82);
+  }
+
+  .reader-hud__meta {
+    display: none;
+  }
+
+  .reader-hud__tools {
+    gap: 6px;
+  }
+
+  .reader-close {
+    top: 0;
+    bottom: auto;
+    left: 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .preportal-page--library .preportal-library-grid {
+    gap: 14px 10px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    padding: 10px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__cover {
+    min-height: clamp(150px, 46vw, 190px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__title {
+    font-size: 0.72rem;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__status {
+    font-size: 0.42rem;
+  }
+
+  .reader-hud__panel {
+    width: calc(100vw - 58px);
+    margin-left: 40px;
+    gap: 7px;
+  }
+
+  .reader-arrow {
+    width: 34px;
+    height: 34px;
+  }
+
+  .reader-tool {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 800px) {
+  .app-shell .topbar {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .app-shell .search-shell {
+    min-height: 42px;
+  }
+
+  .app-shell .profile-chip {
+    min-height: 42px;
+  }
+
+  .app-shell .hero-stage {
+    gap: 12px;
+  }
+
+  .app-shell .spotlight-card {
+    min-height: auto;
+  }
+
+  .app-shell .spotlight-card__content {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .app-shell .spotlight-copy {
+    gap: 10px;
+  }
+
+  .app-shell .spotlight-copy h1 {
+    max-width: 11ch;
+    font-size: clamp(2.15rem, 11vw, 3.75rem);
+  }
+
+  .app-shell .spotlight-copy p,
+  .app-shell .section-heading p,
+  .app-shell .section-heading p[data-library-note] {
+    max-width: 100%;
+    margin-top: 8px;
+    line-height: 1.55;
+  }
+
+  .app-shell .section-heading {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+  }
+
+  .app-shell .section-heading h2 {
+    max-width: 11ch;
+    font-size: clamp(1.95rem, 9vw, 3.2rem);
+  }
+
+  .app-shell .spotlight-actions {
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .app-shell .spotlight-actions .button {
+    min-height: 44px;
+  }
+
+  .app-shell .hero-aside {
+    gap: 10px;
+  }
+
+  .app-shell .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 12px;
+  }
+
+  .app-shell .library-tile {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .app-shell .library-tile__cover {
+    min-height: clamp(170px, 48vw, 230px);
+  }
+
+  .app-shell .signal-card {
+    min-height: 0;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-shell .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .app-shell .library-tile {
+    padding: 10px;
+  }
+
+  .app-shell .library-tile__cover {
+    min-height: clamp(150px, 46vw, 190px);
+  }
+
+  .app-shell .library-tile__description {
+    display: none;
+  }
+}
+
+/* MOBILE UX PASS 1.1: contencao fina de cortes e alinhamentos mobile. */
+@media (max-width: 760px) {
+  html,
+  body,
+  .preportal,
+  .preportal-page,
+  .app-shell,
+  .workspace {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .preportal *,
+  .app-shell * {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .preportal-page--call .call-official__scene {
+    justify-items: center;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    width: min(100%, 342px);
+    margin-inline: auto;
+    transform: translateX(-8px);
+  }
+
+  .preportal-page--call .call-official__manifesto h2 {
+    max-width: 100%;
+    font-size: clamp(2.34rem, 11.1vw, 2.92rem);
+    line-height: 0.98;
+  }
+
+  .preportal-page--call .call-official__manifesto p {
+    max-width: 28ch;
+  }
+
+  .preportal-page--call .call-official__scene--revelation {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .preportal-page--call .preportal-call__copy,
+  .preportal-page--call .preportal-call__actions,
+  .preportal-page--call .preportal-call__footnote {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .preportal-page--call .preportal-call__copy h2 {
+    max-width: 100%;
+    font-size: clamp(2.02rem, 10.5vw, 2.42rem);
+  }
+
+  .preportal-page--call .call-official__cta {
+    width: min(100%, 304px);
+  }
+
+  .preportal-page--library {
+    width: 100%;
+    padding-inline: 10px;
+    justify-items: stretch;
+  }
+
+  .preportal-page--library .editorial-threshold--library,
+  .preportal-page--library .editorial-breath--library,
+  .preportal-page--library .library-official__archive,
+  .preportal-page--library .library-fragment,
+  .preportal-page--library .library-key-final {
+    width: auto;
+    min-width: 0;
+    margin-left: auto;
+    margin-right: auto;
+    justify-self: stretch;
+    transform: none;
+  }
+
+  .preportal-page--library .editorial-threshold--library {
+    padding-inline: 0;
+  }
+
+  .preportal-page--library .editorial-threshold--library h2 {
+    max-width: min(100%, 9.5ch);
+    font-size: clamp(2.55rem, 12.4vw, 3.38rem);
+  }
+
+  .preportal-page--library .editorial-threshold--library p[data-library-note],
+  .preportal-page--library .editorial-breath--library,
+  .preportal-page--library .library-archive__intro,
+  .preportal-page--library .library-manifesto,
+  .preportal-page--library .library-official__archive > .funnel-card__caption {
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+    overflow-wrap: anywhere;
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 8px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    min-width: 0;
+    padding: 9px;
+    overflow: hidden;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__cover {
+    min-height: clamp(146px, 43vw, 178px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__title,
+  .preportal-page--library .preportal-library-grid .library-tile__mood,
+  .preportal-page--library .preportal-library-grid .library-tile__status {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .preportal-page--library .library-fragment {
+    padding: 20px 14px;
+  }
+
+  .preportal-page--library .library-fragment__copy,
+  .preportal-page--library .library-fragment__copy h3,
+  .preportal-page--library .library-fragment__copy p,
+  .preportal-page--library .library-fragment__copy small,
+  .preportal-page--library .library-fragment__open {
+    width: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app-shell .topbar,
+  .app-shell .workspace,
+  .app-shell .section-heading,
+  .app-shell .spotlight-card,
+  .app-shell .journey-banner,
+  .app-shell .operation-panel,
+  .app-shell .signal-card {
+    max-width: 100%;
+  }
+
+  .app-shell .spotlight-card__content,
+  .app-shell .section-heading,
+  .app-shell .operation-panel,
+  .app-shell .signal-card {
+    padding: 16px;
+  }
+
+  .app-shell .spotlight-copy h1,
+  .app-shell .section-heading h2 {
+    max-width: 100%;
+    font-size: clamp(1.82rem, 8.4vw, 2.72rem);
+    line-height: 1.02;
+  }
+
+  .app-shell .spotlight-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .spotlight-actions .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    width: min(100%, 328px);
+    transform: translateX(-14px);
+  }
+
+  .preportal-page--library {
+    padding-inline: 8px;
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    gap: 12px 8px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    padding: 8px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__cover {
+    min-height: clamp(136px, 41vw, 168px);
+  }
+}
+
+/* MOBILE LAYOUT POLISH: uma regua unica para o funil em telas pequenas. */
+@media (max-width: 760px) {
+  .preportal {
+    --pseu-mobile-card-width: min(100%, 335px);
+    --pseu-mobile-hero-width: min(100%, 316px);
+  }
+
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    width: var(--pseu-mobile-hero-width);
+    justify-self: center;
+    transform: translateX(-20px);
+  }
+
+  .preportal-page--call .call-official__manifesto h2 {
+    font-size: clamp(2.16rem, 10.4vw, 2.62rem);
+    line-height: 1;
+    text-wrap: balance;
+  }
+
+  .preportal-page--call .call-official__manifesto p,
+  .preportal-page--call .preportal-call__manifesto,
+  .preportal-page--call .call-official__microcopy,
+  .preportal-page--call .preportal-call__footnote {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .preportal-page--call .call-official__cta {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .preportal-page--library {
+    padding-inline: 8px;
+  }
+
+  .preportal-page--library .editorial-threshold--library,
+  .preportal-page--library .editorial-breath--library,
+  .preportal-page--library .library-official__archive,
+  .preportal-page--library .library-fragment,
+  .preportal-page--library .library-key-final {
+    width: var(--pseu-mobile-card-width);
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    gap: 12px 8px;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    min-height: 0;
+  }
+
+  .preportal-page--library .library-fragment,
+  .preportal-page--library .library-key-final {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .preportal-page--library .library-key-final {
+    gap: 18px;
+  }
+
+  .preportal-page--library .library-key-final__copy,
+  .preportal-page--library .library-key-final__copy h3,
+  .preportal-page--library .library-key-final__copy p,
+  .preportal-page--library .library-key-final__passage {
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .preportal-page--library .library-key-final__copy h3 {
+    font-size: clamp(2.28rem, 12.2vw, 2.95rem);
+    line-height: 0.88;
+    overflow-wrap: normal;
+    text-wrap: balance;
+  }
+
+  .preportal-page--library .library-key-final__object {
+    width: min(100%, 292px);
+    min-height: clamp(330px, 92vw, 390px);
+  }
+
+  .preportal-page--library .library-key-final__object .library-tile--key-final {
+    width: min(100%, 258px);
+    padding: 16px;
+  }
+
+  .preportal-page--library .library-key-final__passage {
+    padding: 18px 14px;
+  }
+
+  .preportal-page--library .library-key-final__passage .button {
+    width: 100%;
+    padding-inline: 12px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    transform: translateX(-22px);
+  }
+}

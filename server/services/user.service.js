@@ -1,5 +1,8 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { query } = require("../db/pool");
+
+const passwordResetTtlMs = 60 * 60 * 1000;
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -76,6 +79,107 @@ async function createOrClaimUser(email, password) {
   return result.rows[0];
 }
 
+function createPasswordResetToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function hashPasswordResetToken(token) {
+  const value = String(token || "").trim();
+  if (!value) return null;
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+async function createPasswordResetRequest(email) {
+  const user = await findUserByEmail(email);
+  if (!user || user.status !== "active" || !user.password_hash) {
+    return null;
+  }
+
+  const token = createPasswordResetToken();
+  const tokenHash = hashPasswordResetToken(token);
+  const expiresAt = new Date(Date.now() + passwordResetTtlMs);
+  const normalized = normalizeEmail(user.email);
+
+  await query(
+    `UPDATE access_tokens
+     SET used_at = NOW()
+     WHERE LOWER(email) = $1
+       AND purpose = 'password_reset'
+       AND used_at IS NULL`,
+    [normalized]
+  );
+
+  await query(
+    `INSERT INTO access_tokens (email, token_hash, purpose, expires_at)
+     VALUES ($1, $2, 'password_reset', $3)`,
+    [user.email, tokenHash, expiresAt]
+  );
+
+  return {
+    token,
+    expiresAt,
+    user: publicUser(user),
+  };
+}
+
+async function findUserByPasswordResetToken(token) {
+  const tokenHash = hashPasswordResetToken(token);
+  if (!tokenHash) return null;
+
+  const result = await query(
+    `SELECT users.id, users.email, users.status, users.created_at, users.last_login_at, access_tokens.expires_at
+     FROM access_tokens
+     INNER JOIN users ON LOWER(users.email) = LOWER(access_tokens.email)
+     WHERE access_tokens.token_hash = $1
+       AND access_tokens.purpose = 'password_reset'
+       AND access_tokens.used_at IS NULL
+       AND access_tokens.expires_at > NOW()
+       AND users.status = 'active'
+     LIMIT 1`,
+    [tokenHash]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function resetPasswordWithToken(token, password) {
+  const tokenHash = hashPasswordResetToken(token);
+  if (!tokenHash) return null;
+
+  const passwordHash = await bcrypt.hash(String(password), 12);
+  const result = await query(
+    `WITH consumed_token AS (
+       UPDATE access_tokens
+       SET used_at = NOW()
+       WHERE token_hash = $1
+         AND purpose = 'password_reset'
+         AND used_at IS NULL
+         AND expires_at > NOW()
+       RETURNING email
+     )
+     UPDATE users
+     SET password_hash = $2,
+         status = 'active'
+     FROM consumed_token
+     WHERE LOWER(users.email) = LOWER(consumed_token.email)
+       AND users.status = 'active'
+     RETURNING users.id, users.email, users.status, users.created_at, users.last_login_at`,
+    [tokenHash, passwordHash]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function clearExpiredPasswordResetTokens() {
+  await query(
+    `UPDATE access_tokens
+     SET used_at = COALESCE(used_at, NOW())
+     WHERE purpose = 'password_reset'
+       AND expires_at <= NOW()
+       AND used_at IS NULL`
+  );
+}
+
 async function ensurePurchasedUser(email) {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
@@ -141,13 +245,17 @@ function publicUser(user) {
 }
 
 module.exports = {
+  clearExpiredPasswordResetTokens,
   createOrClaimUser,
+  createPasswordResetRequest,
   ensurePurchasedUser,
   findUserByEmail,
   findUserById,
+  findUserByPasswordResetToken,
   hasActivePurchase,
   normalizeEmail,
   publicUser,
+  resetPasswordWithToken,
   suspendUserIfNoActivePurchase,
   touchLastLogin,
   verifyPassword,

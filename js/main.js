@@ -2439,22 +2439,18 @@
     els.readerControls.dataset.visible = "true";
     els.readerControls.toggleAttribute("inert", false);
     clearTimeout(state.controlsTimer);
-    if (autoHide && !isTouchReaderControls()) {
-      scheduleHideReaderControls(1800);
+    if (autoHide) {
+      scheduleHideReaderControls(isTouchReaderControls() ? 2600 : 1800);
     }
   }
 
   function scheduleHideReaderControls(delay = 1200) {
-    if (isTouchReaderControls()) return;
     clearTimeout(state.controlsTimer);
     state.controlsTimer = window.setTimeout(() => hideReaderControls(), delay);
   }
 
   function hideReaderControls() {
     if (!els.readerLayout || !els.readerControls) return;
-    if (isTouchReaderControls()) {
-      return;
-    }
     if (isReaderControlInteractionActive()) {
       scheduleHideReaderControls(900);
       return;
@@ -4601,14 +4597,11 @@
     const touchMode = window.matchMedia("(hover: none)").matches;
     clearTimeout(state.controlsTimer);
     if (fragmentScope) {
-      showReaderControls(!touchMode);
+      showReaderControls(true);
     } else if (touchMode) {
-      showReaderControls(false);
+      showReaderControls(true);
     } else {
       hideReaderControls();
-    }
-    if (touchMode) {
-      els.readerClose?.focus?.();
     }
     if (book) {
       if (!wasOpen) {

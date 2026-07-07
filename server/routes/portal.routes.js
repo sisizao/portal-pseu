@@ -4,8 +4,10 @@ const path = require("path");
 const requireAuth = require("../middleware/requireAuth");
 const { isAdminEmail } = require("../middleware/requireAdmin");
 const { renderAccessPage } = require("../views/access-page");
+const { renderResetPasswordPage } = require("../views/reset-password-page");
 const { renderThankYouPage } = require("../views/thank-you-page");
 const { renderProtectedPortal } = require("../services/portal-page.service");
+const { findUserByPasswordResetToken } = require("../services/user.service");
 
 const router = express.Router();
 const projectRoot = path.resolve(__dirname, "../..");
@@ -65,6 +67,21 @@ router.get("/acesso", (req, res) => {
   return res.status(200).send(renderAccessPage({
     supportEmail: process.env.PORTAL_SUPPORT_EMAIL || "pseu.oficial@gmail.com",
   }));
+});
+
+router.get("/redefinir-senha", async (req, res, next) => {
+  try {
+    const token = String(req.query?.token || "").trim();
+    const user = token ? await findUserByPasswordResetToken(token) : null;
+
+    return res.status(200).send(renderResetPasswordPage({
+      token,
+      tokenValid: Boolean(user),
+      supportEmail: process.env.PORTAL_SUPPORT_EMAIL || "pseu.oficial@gmail.com",
+    }));
+  } catch (err) {
+    return next(err);
+  }
 });
 
 router.get("/obrigado", (_req, res) => {

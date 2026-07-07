@@ -704,6 +704,48 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
       z-index: 1;
     }
 
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -4px;
+    }
+
+    .text-link {
+      border: 0;
+      background: transparent;
+      color: rgba(215, 173, 98, 0.78);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.86rem;
+      padding: 0;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(215, 173, 98, 0.28);
+      transition: color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .text-link:hover,
+    .text-link:focus-visible {
+      color: var(--text);
+      border-bottom-color: var(--gold);
+      outline: none;
+    }
+
+    .text-link--center {
+      justify-self: center;
+      margin-top: 2px;
+    }
+
+    .forgot-copy {
+      border: 1px solid rgba(215, 173, 98, 0.18);
+      background:
+        linear-gradient(90deg, rgba(215, 173, 98, 0.06), transparent 72%),
+        rgba(0, 0, 0, 0.18);
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.65;
+      padding: 12px 14px;
+    }
+
     @media (max-width: 820px) {
       main {
         grid-template-columns: 1fr;
@@ -883,7 +925,20 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
           Senha
           <input name="password" type="password" autocomplete="current-password" required />
         </label>
+        <div class="form-actions">
+          <button class="text-link" type="button" data-switch-mode="forgot">Esqueci minha senha</button>
+        </div>
         <button class="submit" type="submit">Entrar no Portal</button>
+      </form>
+
+      <form data-form="forgot">
+        <div class="forgot-copy">Informe o e-mail cadastrado. Se existir uma conta vinculada a ele, enviaremos um link de recupera&ccedil;&atilde;o.</div>
+        <label>
+          E-mail cadastrado
+          <input name="email" type="email" autocomplete="email" required />
+        </label>
+        <button class="submit" type="submit">Enviar link de recupera&ccedil;&atilde;o</button>
+        <button class="text-link text-link--center" type="button" data-switch-mode="login">Voltar ao login</button>
       </form>
 
       <div class="message" data-message aria-live="polite"></div>
@@ -891,11 +946,13 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
   </main>
 
   <script>
-    const tabs = document.querySelectorAll("[data-mode]");
+    const tabs = document.querySelectorAll(".tab[data-mode]");
+    const modeSwitches = document.querySelectorAll("[data-switch-mode]");
     const forms = document.querySelectorAll("[data-form]");
     const message = document.querySelector("[data-message]");
     const params = new URLSearchParams(window.location.search);
     const returnTo = params.get("returnTo") || "/portal";
+    const neutralResetMessage = "Se existir uma conta vinculada a este e-mail, enviaremos um link de recupera\u00e7\u00e3o.";
 
     function setMessage(text) {
       message.textContent = text || "";
@@ -908,16 +965,24 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
     }
 
     tabs.forEach((tab) => tab.addEventListener("click", () => setMode(tab.dataset.mode)));
+    modeSwitches.forEach((control) => control.addEventListener("click", () => setMode(control.dataset.switchMode)));
 
     async function submitAuth(mode, form) {
-      setMessage("Verificando acesso...");
+      setMessage(mode === "forgot" ? "Preparando protocolo de recupera\u00e7\u00e3o..." : "Verificando acesso...");
       const data = Object.fromEntries(new FormData(form).entries());
-      const response = await fetch("/api/auth/" + mode, {
+      const endpoint = mode === "forgot" ? "/api/auth/forgot-password" : "/api/auth/" + mode;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(data),
       });
+
+      if (mode === "forgot") {
+        setMessage(neutralResetMessage);
+        form.reset();
+        return;
+      }
 
       if (!response.ok) {
         const copy = mode === "claim"
@@ -939,6 +1004,10 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
         });
       });
     });
+
+    if (["claim", "login"].includes(params.get("mode"))) {
+      setMode(params.get("mode"));
+    }
 
     fetch("/api/auth/me", { credentials: "include" })
       .then((response) => response.ok ? response.json() : null)
