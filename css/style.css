@@ -4895,12 +4895,45 @@ body.is-fragment-open {
 }
 
 .funnel-video {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: 100%;
   max-height: 100%;
   display: block;
   object-fit: contain;
   background: #040406;
+}
+
+.funnel-vsl-card.is-playing .funnel-vsl-stage::before,
+.funnel-vsl-card.is-playing .funnel-vsl-stage::after,
+.funnel-vsl-card.is-native-fullscreen .funnel-vsl-stage::before,
+.funnel-vsl-card.is-native-fullscreen .funnel-vsl-stage::after {
+  opacity: 0;
+}
+
+.funnel-vsl-card.is-playing > .travessia-collage-note,
+.funnel-vsl-card.is-playing > .travessia-thread-anchor,
+.funnel-vsl-card.is-native-fullscreen > .travessia-collage-note,
+.funnel-vsl-card.is-native-fullscreen > .travessia-thread-anchor {
+  opacity: 0;
+}
+
+.funnel-vsl-stage:fullscreen,
+.funnel-vsl-stage:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.funnel-vsl-stage:fullscreen .funnel-video,
+.funnel-vsl-stage:-webkit-full-screen .funnel-video,
+.funnel-video:fullscreen,
+.funnel-video:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  background: #000;
 }
 
 .funnel-vsl-stage.is-video-unavailable {
@@ -4932,7 +4965,7 @@ body.is-fragment-open {
     linear-gradient(180deg, rgba(2, 2, 4, 0.16), rgba(2, 2, 4, 0.74)),
     radial-gradient(circle at 50% 50%, rgba(211, 167, 90, 0.12), transparent 18rem);
   box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.5);
-  z-index: 2;
+  z-index: 4;
 }
 
 .funnel-vsl-card.is-video-unavailable .funnel-vsl-play,
@@ -6425,7 +6458,7 @@ body.is-fragment-open {
 
 .recovered-archives__video {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   width: auto;
   height: min(100%, 82dvh, 780px);
   max-width: min(100%, 430px, 88vw);
@@ -6435,6 +6468,19 @@ body.is-fragment-open {
   background: #000;
   border: 1px solid rgba(116, 213, 227, 0.28);
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58);
+}
+
+.recovered-archives__video:fullscreen,
+.recovered-archives__video:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  aspect-ratio: auto;
+  object-fit: contain;
+  background: #000;
+  border: 0;
+  box-shadow: none;
 }
 
 .recovered-archives__notice {
@@ -6623,8 +6669,8 @@ body.is-recovered-archive-open {
 
   .recovered-archives__video {
     width: auto;
-    height: 100%;
-    max-width: 96vw;
+    height: min(58dvh, 540px);
+    max-width: min(96vw, 360px);
     max-height: 100%;
   }
 }

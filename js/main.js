@@ -428,6 +428,8 @@
     els.recoveredArchiveVideo?.addEventListener("seeked", resetRecoveredArchiveWatchAnchor);
     els.recoveredArchiveVideo?.addEventListener("ended", handleRecoveredArchiveEnded);
     els.recoveredArchiveVideo?.addEventListener("timeupdate", handleRecoveredArchiveTimeUpdate);
+    prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
+    bindVideoFullscreenEvents(els.recoveredArchiveVideo);
 
     document.querySelectorAll(".call-official__video, .travessia-entry-background-video, .travessia-entry-artifact__video").forEach((video) => {
       video.addEventListener("error", () => markPassiveVideoUnavailable(video));
@@ -439,6 +441,8 @@
     els.funnelVideos.forEach((video) => {
       const key = video.dataset.funnelVideo;
       const stage = video.closest(".funnel-vsl-stage");
+      prepareVideoPlayerForSafari(video);
+      bindVideoFullscreenEvents(video);
       video.addEventListener("play", () => {
         video.closest(".funnel-vsl-card")?.classList.add("is-playing");
         rememberFunnelVideo(video, true);
@@ -2975,6 +2979,81 @@
     card.classList.remove("is-vsl-controls-visible");
   }
 
+  function prepareVideoPlayerForSafari(video) {
+    if (!video) return;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.playsInline = true;
+  }
+
+  function isLikelyIosSafari() {
+    const platform = window.navigator?.platform || "";
+    const userAgent = window.navigator?.userAgent || "";
+    return /iP(ad|hone|od)/.test(userAgent) || (platform === "MacIntel" && window.navigator?.maxTouchPoints > 1);
+  }
+
+  function setVideoFullscreenState(video, active) {
+    if (!video) return;
+    video.closest(".funnel-vsl-card")?.classList.toggle("is-native-fullscreen", active);
+    video.closest(".recovered-archives__screen")?.classList.toggle("is-native-fullscreen", active);
+    els.body.classList.toggle("is-video-native-fullscreen", active);
+  }
+
+  function bindVideoFullscreenEvents(video) {
+    if (!video || video.dataset.fullscreenBound === "true") return;
+    video.dataset.fullscreenBound = "true";
+    video.addEventListener("webkitbeginfullscreen", () => setVideoFullscreenState(video, true));
+    video.addEventListener("webkitendfullscreen", () => setVideoFullscreenState(video, false));
+  }
+
+  function requestVideoFullscreen(video) {
+    if (!video) return;
+    prepareVideoPlayerForSafari(video);
+
+    if (video.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === "function") {
+      video.webkitExitFullscreen();
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+      return;
+    }
+
+    if (isLikelyIosSafari() && typeof video.webkitEnterFullscreen === "function") {
+      try {
+        video.webkitEnterFullscreen();
+        return;
+      } catch (error) {}
+    }
+
+    const fullscreenTarget = video.closest(".funnel-vsl-stage") || video.closest(".recovered-archives__transmission") || video;
+    const request = fullscreenTarget.requestFullscreen
+      || fullscreenTarget.webkitRequestFullscreen
+      || fullscreenTarget.mozRequestFullScreen
+      || fullscreenTarget.msRequestFullscreen;
+
+    if (request) {
+      const result = request.call(fullscreenTarget);
+      if (result?.catch) {
+        result.catch(() => {
+          if (typeof video.webkitEnterFullscreen === "function") {
+            try {
+              video.webkitEnterFullscreen();
+            } catch (error) {}
+          }
+        });
+      }
+      return;
+    }
+
+    if (typeof video.webkitEnterFullscreen === "function") {
+      try {
+        video.webkitEnterFullscreen();
+      } catch (error) {}
+    }
+  }
+
   function resumeFunnelVideo(key) {
     const video = document.querySelector(`[data-funnel-video="${key}"]`);
     if (!video) return;
@@ -4011,6 +4090,7 @@
 
     els.recoveredArchiveVideo.pause();
     if (els.recoveredArchiveVideo.dataset.archiveIndex !== String(index)) {
+      prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
       els.recoveredArchiveVideo.src = toUrl(config.video);
       els.recoveredArchiveVideo.dataset.archiveIndex = String(index);
       els.recoveredArchiveVideo.load();
@@ -4234,6 +4314,7 @@
       const posterSource = posterAsset?.available === true ? posterAsset.source : media[key];
       const videoUnavailable = videoAsset?.available === false || (videoAsset?.available == null && Boolean(video.error));
       const posterUrl = toUrl(posterSource);
+      prepareVideoPlayerForSafari(video);
       video.poster = posterUrl;
       video.closest(".funnel-vsl-stage")?.style.setProperty("--funnel-poster", `url("${posterUrl}")`);
       setFunnelVideoUnavailable(video, videoUnavailable);
@@ -4299,12 +4380,7 @@
 
     if (command === "fullscreen") {
       showFunnelControls(key);
-      const target = video.closest(".funnel-vsl-stage") || video;
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.();
-      } else {
-        target.requestFullscreen?.();
-      }
+      requestVideoFullscreen(video);
     }
   }
 
