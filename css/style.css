@@ -7383,7 +7383,7 @@ body[data-reader-book="historico"] .reader-frame::before {
 }
 
 [data-reader-book-stage] {
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   cursor: grab;
 }
 
@@ -8774,6 +8774,23 @@ body.is-reader-debug .reader-page-shell {
 
   .reader-page-shell {
     min-height: clamp(560px, 74vh, 760px);
+  }
+}
+
+@media (hover: none), (max-width: 800px) {
+  .reader-layout,
+  .reader-shell,
+  .reader-book,
+  [data-reader-book-stage],
+  .reader-book__cover,
+  .reader-book__spread,
+  .reader-page-shell,
+  .reader-page-canvas {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  .reader-page-shell[data-render-kind="pdfjs"] .reader-page-canvas[data-loaded="true"] {
+    pointer-events: auto;
   }
 }
 
@@ -10191,6 +10208,20 @@ body.is-reader-debug .reader-hud {
   .preportal {
     --pseu-mobile-card-width: min(100%, 335px);
     --pseu-mobile-hero-width: min(100%, 316px);
+  }
+
+  .preportal-page--call {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    overflow: hidden;
+  }
+
+  .preportal-page--call > .call-official__reel,
+  .preportal-page--call .call-official__video {
+    width: 100%;
+    max-width: none;
   }
 
   .preportal-page--call .call-official__manifesto,

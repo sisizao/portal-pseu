@@ -20,6 +20,7 @@
     swipeStartX: 0,
     swipeStartY: 0,
     swipeActive: false,
+    swipePointerId: null,
     controlsVisible: false,
     controlsTimer: 0,
     readerError: "",
@@ -66,6 +67,7 @@
       updatedAt: null,
     },
   };
+  const readerSwipePointers = new Set();
 
   const pdfSourceCache = new Map();
   const pdfDocumentCache = new Map();
@@ -4809,26 +4811,46 @@
 
   function handleBookSwipeStart(event) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType === "touch") {
+      readerSwipePointers.add(event.pointerId);
+      if (readerSwipePointers.size > 1) {
+        state.swipeActive = false;
+        state.swipePointerId = null;
+        return;
+      }
+    }
     state.swipeActive = true;
+    state.swipePointerId = event.pointerId;
     state.swipeStartX = event.clientX;
     state.swipeStartY = event.clientY;
-    event.currentTarget?.setPointerCapture?.(event.pointerId);
+    if (event.pointerType !== "touch") {
+      event.currentTarget?.setPointerCapture?.(event.pointerId);
+    }
   }
 
   function handleBookSwipeEnd(event) {
-    if (!state.swipeActive) return;
+    if (event.pointerType === "touch") readerSwipePointers.delete(event.pointerId);
+    if (!state.swipeActive || state.swipePointerId !== event.pointerId) {
+      if (readerSwipePointers.size === 0) state.swipeActive = false;
+      return;
+    }
 
     const dx = event.clientX - state.swipeStartX;
     const dy = event.clientY - state.swipeStartY;
     state.swipeActive = false;
-    event.currentTarget?.releasePointerCapture?.(event.pointerId);
+    state.swipePointerId = null;
+    if (event.pointerType !== "touch") {
+      event.currentTarget?.releasePointerCapture?.(event.pointerId);
+    }
 
     if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
     navigateReaderPage(dx < 0 ? 1 : -1);
   }
 
-  function resetBookSwipe() {
+  function resetBookSwipe(event) {
+    if (event?.pointerType === "touch") readerSwipePointers.delete(event.pointerId);
     state.swipeActive = false;
+    state.swipePointerId = null;
   }
 
   function chapterForPage(book, page) {
