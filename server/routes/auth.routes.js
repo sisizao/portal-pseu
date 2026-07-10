@@ -6,6 +6,7 @@ const {
   findUserByEmail,
   findUserById,
   hasActivePurchase,
+  inspectPasswordResetToken,
   normalizeEmail,
   publicUser,
   resetPasswordWithToken,
@@ -37,6 +38,38 @@ function buildPasswordResetUrl(req, token) {
   const requestBaseUrl = `${req.protocol}://${req.get("host")}`;
   const baseUrl = String(configuredBaseUrl || requestBaseUrl).replace(/\/+$/, "");
   return `${baseUrl}/redefinir-senha?token=${encodeURIComponent(token)}`;
+}
+
+function maskEmailForLog(email) {
+  const value = normalizeEmail(email);
+  if (!value.includes("@")) return undefined;
+  const [name, domain] = value.split("@");
+  const visibleName = name.slice(0, 2);
+  return `${visibleName}${"*".repeat(Math.max(name.length - 2, 2))}@${domain}`;
+}
+
+function compactLogDetails(details) {
+  return Object.fromEntries(
+    Object.entries(details).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  );
+}
+
+function formatPasswordResetTokenLog(tokenStatus = {}) {
+  return compactLogDetails({
+    tokenStatus: tokenStatus.status,
+    tokenHashPrefix: tokenStatus.tokenHashPrefix,
+    email: maskEmailForLog(tokenStatus.email),
+    expiresAt: tokenStatus.expiresAt,
+    usedAt: tokenStatus.usedAt,
+    userStatus: tokenStatus.userStatus,
+  });
+}
+
+function logPasswordResetFailure(reason, details = {}) {
+  console.warn("[PSEU AUTH] Falha na redefinicao de senha:", compactLogDetails({
+    reason,
+    ...details,
+  }));
 }
 
 router.get("/me", async (req, res, next) => {
@@ -131,12 +164,35 @@ router.post("/reset-password", async (req, res, next) => {
     const password = String(req.body?.password || "");
     const confirmPassword = String(req.body?.confirmPassword || "");
 
-    if (!token || password.length < 8 || password !== confirmPassword) {
+    if (!token) {
+      logPasswordResetFailure("token_missing");
       return res.status(400).json({ error: "invalid_password_reset" });
+    }
+
+    if (password.length < 8) {
+      logPasswordResetFailure("password_invalid", { passwordLength: password.length });
+      return res.status(400).json({ error: "invalid_password_reset" });
+    }
+
+    if (password !== confirmPassword) {
+      logPasswordResetFailure("password_confirmation_mismatch");
+      return res.status(400).json({ error: "invalid_password_reset" });
+    }
+
+    const tokenStatus = await inspectPasswordResetToken(token);
+    if (tokenStatus.status !== "valid") {
+      logPasswordResetFailure("token_rejected", formatPasswordResetTokenLog(tokenStatus));
+      return res.status(400).json({ error: "invalid_or_expired_token" });
     }
 
     const user = await resetPasswordWithToken(token, password);
     if (!user) {
+      const postAttemptStatus = await inspectPasswordResetToken(token);
+      logPasswordResetFailure("token_consume_failed", compactLogDetails({
+        beforeStatus: tokenStatus.status,
+        afterStatus: postAttemptStatus.status,
+        ...formatPasswordResetTokenLog(postAttemptStatus),
+      }));
       return res.status(400).json({ error: "invalid_or_expired_token" });
     }
 

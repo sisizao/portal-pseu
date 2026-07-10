@@ -7,7 +7,10 @@ const { renderAccessPage } = require("../views/access-page");
 const { renderResetPasswordPage } = require("../views/reset-password-page");
 const { renderThankYouPage } = require("../views/thank-you-page");
 const { renderProtectedPortal } = require("../services/portal-page.service");
-const { findUserByPasswordResetToken } = require("../services/user.service");
+const {
+  findUserByPasswordResetToken,
+  inspectPasswordResetToken,
+} = require("../services/user.service");
 
 const router = express.Router();
 const projectRoot = path.resolve(__dirname, "../..");
@@ -73,6 +76,17 @@ router.get("/redefinir-senha", async (req, res, next) => {
   try {
     const token = String(req.query?.token || "").trim();
     const user = token ? await findUserByPasswordResetToken(token) : null;
+
+    if (token && !user) {
+      const tokenStatus = await inspectPasswordResetToken(token);
+      console.warn("[PSEU AUTH] Link de redefinicao indisponivel:", {
+        tokenStatus: tokenStatus.status,
+        tokenHashPrefix: tokenStatus.tokenHashPrefix,
+        expiresAt: tokenStatus.expiresAt,
+        usedAt: tokenStatus.usedAt,
+        userStatus: tokenStatus.userStatus,
+      });
+    }
 
     return res.status(200).send(renderResetPasswordPage({
       token,

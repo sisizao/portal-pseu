@@ -142,6 +142,64 @@ async function findUserByPasswordResetToken(token) {
   return result.rows[0] || null;
 }
 
+async function inspectPasswordResetToken(token) {
+  const tokenHash = hashPasswordResetToken(token);
+  if (!tokenHash) {
+    return { status: "missing_token" };
+  }
+
+  const result = await query(
+    `SELECT access_tokens.email,
+            access_tokens.expires_at,
+            access_tokens.used_at,
+            users.id AS user_id,
+            users.status AS user_status
+     FROM access_tokens
+     LEFT JOIN users ON LOWER(users.email) = LOWER(access_tokens.email)
+     WHERE access_tokens.token_hash = $1
+       AND access_tokens.purpose = 'password_reset'
+     LIMIT 1`,
+    [tokenHash]
+  );
+
+  const tokenInfo = {
+    tokenHashPrefix: tokenHash.slice(0, 12),
+  };
+
+  const row = result.rows[0];
+  if (!row) {
+    return { ...tokenInfo, status: "token_not_found" };
+  }
+
+  const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
+  const expired = expiresAt && Number.isFinite(expiresAt.getTime()) && expiresAt.getTime() <= Date.now();
+  const details = {
+    ...tokenInfo,
+    email: row.email,
+    expiresAt: row.expires_at,
+    usedAt: row.used_at,
+    userStatus: row.user_status || null,
+  };
+
+  if (expired) {
+    return { ...details, status: "token_expired" };
+  }
+
+  if (row.used_at) {
+    return { ...details, status: "token_used" };
+  }
+
+  if (!row.user_id) {
+    return { ...details, status: "user_not_found" };
+  }
+
+  if (row.user_status !== "active") {
+    return { ...details, status: "user_not_active" };
+  }
+
+  return { ...details, status: "valid" };
+}
+
 async function resetPasswordWithToken(token, password) {
   const tokenHash = hashPasswordResetToken(token);
   if (!tokenHash) return null;
@@ -253,6 +311,7 @@ module.exports = {
   findUserById,
   findUserByPasswordResetToken,
   hasActivePurchase,
+  inspectPasswordResetToken,
   normalizeEmail,
   publicUser,
   resetPasswordWithToken,

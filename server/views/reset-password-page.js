@@ -146,6 +146,11 @@ function renderResetPasswordPage({
       font-size: 0.9rem;
     }
 
+    .password-control {
+      position: relative;
+      display: block;
+    }
+
     input,
     button {
       font: inherit;
@@ -163,9 +168,52 @@ function renderResetPasswordPage({
       outline: none;
     }
 
+    .password-control input {
+      padding-right: 54px;
+    }
+
     input:focus {
       border-color: rgba(215, 173, 98, 0.62);
       box-shadow: 0 0 0 3px rgba(215, 173, 98, 0.1);
+    }
+
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      transform: translateY(-50%);
+      border: 1px solid rgba(215, 173, 98, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
+        rgba(0, 0, 0, 0.36);
+      color: rgba(244, 238, 226, 0.62);
+      cursor: pointer;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+    }
+
+    .password-toggle svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .password-toggle:hover,
+    .password-toggle:focus-visible,
+    .password-toggle[aria-pressed="true"] {
+      outline: none;
+      border-color: rgba(215, 173, 98, 0.58);
+      color: var(--gold);
+      background:
+        linear-gradient(180deg, rgba(215, 173, 98, 0.12), transparent),
+        rgba(0, 0, 0, 0.46);
     }
 
     .submit,
@@ -235,12 +283,28 @@ function renderResetPasswordPage({
       <form data-reset-form>
         <input name="token" type="hidden" value="${safeToken}" />
         <label>
-          Nova senha
-          <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+          <span>Nova senha</span>
+          <span class="password-control">
+            <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false" aria-controls="reset-password">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M2.2 10s3.1-5 7.8-5 7.8 5 7.8 5-3.1 5-7.8 5-7.8-5-7.8-5Z"></path>
+                <circle cx="10" cy="10" r="2.4"></circle>
+              </svg>
+            </button>
+          </span>
         </label>
         <label>
-          Confirmar nova senha
-          <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+          <span>Confirmar nova senha</span>
+          <span class="password-control">
+            <input id="reset-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false" aria-controls="reset-confirm-password">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M2.2 10s3.1-5 7.8-5 7.8 5 7.8 5-3.1 5-7.8 5-7.8-5-7.8-5Z"></path>
+                <circle cx="10" cy="10" r="2.4"></circle>
+              </svg>
+            </button>
+          </span>
         </label>
         <button class="submit" type="submit">Redefinir senha</button>
       </form>
@@ -263,12 +327,40 @@ function renderResetPasswordPage({
       if (message) message.textContent = text || "";
     }
 
+    document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+      const input = document.getElementById(button.getAttribute("aria-controls"));
+      if (!input) return;
+
+      button.addEventListener("click", () => {
+        const shouldShow = input.type === "password";
+        input.type = shouldShow ? "text" : "password";
+        button.setAttribute("aria-pressed", shouldShow ? "true" : "false");
+        button.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
+        input.focus({ preventScroll: true });
+      });
+    });
+
     if (form) {
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         setMessage("Atualizando senha...");
 
         const data = Object.fromEntries(new FormData(form).entries());
+
+        if (!data.token) {
+          setMessage("Solicite um novo link para redefinir sua senha.");
+          return;
+        }
+
+        if (String(data.password || "").length < 8) {
+          setMessage("A senha precisa ter pelo menos 8 caracteres.");
+          return;
+        }
+
+        if (data.password !== data.confirmPassword) {
+          setMessage("As senhas informadas nao coincidem.");
+          return;
+        }
 
         try {
           const response = await fetch("/api/auth/reset-password", {
@@ -279,7 +371,19 @@ function renderResetPasswordPage({
           });
 
           if (!response.ok) {
-            setMessage("Nao foi possivel redefinir. Verifique a senha ou solicite um novo link.");
+            let payload = {};
+            try {
+              payload = await response.json();
+            } catch (_parseErr) {
+              payload = {};
+            }
+
+            if (payload.error === "invalid_password_reset") {
+              setMessage("Verifique a nova senha e tente novamente.");
+              return;
+            }
+
+            setMessage("Nao foi possivel redefinir. Solicite um novo link e tente novamente.");
             return;
           }
 
