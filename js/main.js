@@ -26,7 +26,6 @@
       touchStartY: 0,
       dragging: false,
       pinching: false,
-      lastViewportScale: 1,
       suppressClickUntil: 0,
     },
     controlsVisible: false,
@@ -76,7 +75,6 @@
     },
   };
   const readerSwipePointers = new Set();
-  const readerGesturePointers = new Set();
   const READER_GESTURE_DRAG_THRESHOLD = 8;
   const READER_GESTURE_CLICK_GUARD_MS = 900;
 
@@ -563,14 +561,16 @@
     els.readerMark?.addEventListener("click", handleReaderBookmark);
 
     window.addEventListener("resize", () => {
+      if (isReaderOpen() && isTouchReaderControls()) {
+        guardReaderGesture();
+        return;
+      }
       if (!isDesktopOperationsSidebar()) {
         els.appShell?.classList.remove("is-sidebar-expanded");
       }
       syncFunnelMedia();
     }, { passive: true });
     window.addEventListener("orientationchange", syncFunnelMedia);
-    window.visualViewport?.addEventListener("resize", handleReaderVisualViewportChange, { passive: true });
-    window.visualViewport?.addEventListener("scroll", handleReaderVisualViewportChange, { passive: true });
 
     const handleReaderFrameLoad = (event) => {
       finalizeReaderFrameLoad(event.currentTarget);
@@ -2584,6 +2584,7 @@
 
     const touch = touches[0];
     if (!touch) return;
+    state.readerGesture.pinching = false;
     state.readerGesture.touchStartX = touch.clientX;
     state.readerGesture.touchStartY = touch.clientY;
     state.readerGesture.dragging = false;
@@ -2623,22 +2624,7 @@
     }
     state.readerGesture.pinching = false;
     state.readerGesture.dragging = false;
-    readerGesturePointers.clear();
     cancelReaderSwipeForGesture();
-  }
-
-  function handleReaderVisualViewportChange() {
-    if (!isReaderOpen() || !isTouchReaderControls()) return;
-    const currentScale = Number(window.visualViewport?.scale || 1);
-    const returningToNormalScale = state.readerGesture.lastViewportScale > 1.01 && currentScale <= 1.01;
-    state.readerGesture.lastViewportScale = currentScale;
-    state.readerGesture.pinching = true;
-    guardReaderGesture(returningToNormalScale ? 2600 : 1200);
-    cancelReaderSwipeForGesture();
-    window.clearTimeout(handleReaderVisualViewportChange.timer);
-    handleReaderVisualViewportChange.timer = window.setTimeout(() => {
-      state.readerGesture.pinching = false;
-    }, returningToNormalScale ? 900 : 260);
   }
 
   function isReaderControlInteractionActive() {
