@@ -21,6 +21,13 @@
     swipeStartY: 0,
     swipeActive: false,
     swipePointerId: null,
+    readerGesture: {
+      touchStartX: 0,
+      touchStartY: 0,
+      dragging: false,
+      pinching: false,
+      suppressClickUntil: 0,
+    },
     controlsVisible: false,
     controlsTimer: 0,
     readerError: "",
@@ -68,6 +75,9 @@
     },
   };
   const readerSwipePointers = new Set();
+  const readerGesturePointers = new Set();
+  const READER_GESTURE_DRAG_THRESHOLD = 8;
+  const READER_GESTURE_CLICK_GUARD_MS = 900;
 
   const pdfSourceCache = new Map();
   const pdfDocumentCache = new Map();
@@ -515,10 +525,26 @@
     els.focusFrame?.addEventListener("pointerleave", resetTilt);
     els.focusFrame?.addEventListener("pointercancel", resetTilt);
 
-    els.readerClose?.addEventListener("click", closeReader);
-    els.readerLayout?.addEventListener("click", (event) => {
-      if (event.target === els.readerLayout) closeReader();
+    els.readerClose?.addEventListener("click", (event) => {
+      if (isReaderGestureGuarded()) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      closeReader();
     });
+    els.readerLayout?.addEventListener("click", (event) => {
+      if (isReaderGestureGuarded()) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (event.target === els.readerLayout && !isTouchReaderControls()) closeReader();
+    });
+    els.readerLayout?.addEventListener("touchstart", handleReaderTouchStart, { passive: true });
+    els.readerLayout?.addEventListener("touchmove", handleReaderTouchMove, { passive: true });
+    els.readerLayout?.addEventListener("touchend", handleReaderTouchEnd, { passive: true });
+    els.readerLayout?.addEventListener("touchcancel", handleReaderTouchEnd, { passive: true });
     els.readerLayout?.addEventListener("pointermove", handleReaderPointerMove);
     els.readerLayout?.addEventListener("pointerdown", handleReaderPointerMove);
     els.readerLayout?.addEventListener("pointerleave", scheduleHideReaderControls);
@@ -542,6 +568,8 @@
       syncFunnelMedia();
     }, { passive: true });
     window.addEventListener("orientationchange", syncFunnelMedia);
+    window.visualViewport?.addEventListener("resize", handleReaderVisualViewportChange, { passive: true });
+    window.visualViewport?.addEventListener("scroll", handleReaderVisualViewportChange, { passive: true });
 
     const handleReaderFrameLoad = (event) => {
       finalizeReaderFrameLoad(event.currentTarget);
@@ -821,6 +849,7 @@
   function navigateReaderPage(direction) {
     const book = getCurrentBook();
     if (!book) return;
+    if (isTouchReaderControls() && isReaderGestureGuarded()) return;
 
     if (isFragmentReaderScope(book)) {
       navigateFragmentReaderPage(direction);
@@ -2510,6 +2539,102 @@
     tile.setAttribute("aria-expanded", "true");
     tile.focus?.({ preventScroll: true });
     return true;
+  }
+
+  function isReaderOpen() {
+    return Boolean(els.readerLayout?.classList.contains("is-open"));
+  }
+
+  function readerGestureNow() {
+    return window.performance?.now?.() || Date.now();
+  }
+
+  function guardReaderGesture(duration = READER_GESTURE_CLICK_GUARD_MS) {
+    state.readerGesture.suppressClickUntil = Math.max(
+      state.readerGesture.suppressClickUntil || 0,
+      readerGestureNow() + duration
+    );
+  }
+
+  function isReaderGestureGuarded() {
+    return Boolean(
+      state.readerGesture.pinching
+      || state.readerGesture.dragging
+      || readerGestureNow() < Number(state.readerGesture.suppressClickUntil || 0)
+    );
+  }
+
+  function cancelReaderSwipeForGesture() {
+    readerSwipePointers.clear();
+    state.swipeActive = false;
+    state.swipePointerId = null;
+  }
+
+  function handleReaderTouchStart(event) {
+    if (!isReaderOpen()) return;
+    const touches = Array.from(event.touches || []);
+    if (touches.length > 1) {
+      state.readerGesture.pinching = true;
+      state.readerGesture.dragging = false;
+      guardReaderGesture(1200);
+      cancelReaderSwipeForGesture();
+      return;
+    }
+
+    const touch = touches[0];
+    if (!touch) return;
+    state.readerGesture.touchStartX = touch.clientX;
+    state.readerGesture.touchStartY = touch.clientY;
+    state.readerGesture.dragging = false;
+  }
+
+  function handleReaderTouchMove(event) {
+    if (!isReaderOpen()) return;
+    const touches = Array.from(event.touches || []);
+    if (touches.length > 1) {
+      state.readerGesture.pinching = true;
+      state.readerGesture.dragging = false;
+      guardReaderGesture(1200);
+      cancelReaderSwipeForGesture();
+      return;
+    }
+
+    const touch = touches[0];
+    if (!touch) return;
+    const dx = Math.abs(touch.clientX - Number(state.readerGesture.touchStartX || touch.clientX));
+    const dy = Math.abs(touch.clientY - Number(state.readerGesture.touchStartY || touch.clientY));
+    if (dx > READER_GESTURE_DRAG_THRESHOLD || dy > READER_GESTURE_DRAG_THRESHOLD) {
+      state.readerGesture.dragging = true;
+      guardReaderGesture();
+      cancelReaderSwipeForGesture();
+    }
+  }
+
+  function handleReaderTouchEnd(event) {
+    if (!isReaderOpen()) return;
+    if ((event.touches || []).length > 0) {
+      guardReaderGesture(900);
+      return;
+    }
+
+    if (state.readerGesture.pinching || state.readerGesture.dragging) {
+      guardReaderGesture(state.readerGesture.pinching ? 1200 : READER_GESTURE_CLICK_GUARD_MS);
+    }
+    state.readerGesture.pinching = false;
+    state.readerGesture.dragging = false;
+    readerGesturePointers.clear();
+    cancelReaderSwipeForGesture();
+  }
+
+  function handleReaderVisualViewportChange() {
+    if (!isReaderOpen() || !isTouchReaderControls()) return;
+    state.readerGesture.pinching = true;
+    guardReaderGesture(1200);
+    cancelReaderSwipeForGesture();
+    window.clearTimeout(handleReaderVisualViewportChange.timer);
+    handleReaderVisualViewportChange.timer = window.setTimeout(() => {
+      state.readerGesture.pinching = false;
+    }, 260);
   }
 
   function isReaderControlInteractionActive() {
@@ -4941,10 +5066,14 @@
   function handleBookSwipeStart(event) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (event.pointerType === "touch") {
+      if (isTouchReaderControls()) {
+        cancelReaderSwipeForGesture();
+        return;
+      }
       readerSwipePointers.add(event.pointerId);
       if (readerSwipePointers.size > 1) {
-        state.swipeActive = false;
-        state.swipePointerId = null;
+        guardReaderGesture(1200);
+        cancelReaderSwipeForGesture();
         return;
       }
     }
@@ -4959,6 +5088,10 @@
 
   function handleBookSwipeEnd(event) {
     if (event.pointerType === "touch") readerSwipePointers.delete(event.pointerId);
+    if (event.pointerType === "touch" && isTouchReaderControls()) {
+      cancelReaderSwipeForGesture();
+      return;
+    }
     if (!state.swipeActive || state.swipePointerId !== event.pointerId) {
       if (readerSwipePointers.size === 0) state.swipeActive = false;
       return;

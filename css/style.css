@@ -11631,6 +11631,50 @@ body.is-reader-debug .reader-hud {
   }
 }
 
+/* Ajuste de bug visual: o painel claro pertence apenas a capa. */
+.preportal-page--library .preportal-library-grid .library-tile::before,
+.preportal-page--library .preportal-library-grid .library-tile::after {
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  bottom: auto;
+  width: auto;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  max-height: calc(100% - 82px);
+  pointer-events: none;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile:hover::before,
+.preportal-page--library .preportal-library-grid .library-tile:focus::before,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible::before,
+.preportal-page--library .preportal-library-grid .library-tile:hover::after,
+.preportal-page--library .preportal-library-grid .library-tile:focus::after,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible::after {
+  bottom: auto;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile__number,
+.preportal-page--library .preportal-library-grid .library-tile__title,
+.preportal-page--library .preportal-library-grid .library-tile__mood,
+.preportal-page--library .preportal-library-grid .library-tile__description,
+.preportal-page--library .preportal-library-grid .library-tile__status,
+.preportal-page--library .preportal-library-grid .library-tile__lock,
+.preportal-page--library .preportal-library-grid .library-tile__progress {
+  position: relative;
+  z-index: 4;
+}
+
+@media (max-width: 760px) {
+  .preportal-page--library .preportal-library-grid .library-tile::before,
+  .preportal-page--library .preportal-library-grid .library-tile::after {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    max-height: calc(100% - 76px);
+  }
+}
+
 /* Missao final do funil: polish premium sem redesenhar a estrutura. */
 .preportal-page--call .call-official__scene--key {
   background:
