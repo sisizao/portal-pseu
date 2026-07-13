@@ -76,6 +76,7 @@
   const CONTINUITY_STORAGE_KEY = "pseu.portal.continuity.v1";
   const TRAVERSAL_NOTEBOOK_STORAGE_KEY = "pseu.portal.traversalNotebook.v1";
   const FUNNEL_PROGRESS_SAVE_MS = 3500;
+  const LIBRARY_TILE_REVEALED_CLASS = "library-tile--revealed";
   const FRAGMENT_BOOK_ID = "despertar";
   const FRAGMENT_ALLOWED_PAGES = [3, 13, 19, 31, 51];
   const FRAGMENT_PDF_SOURCE = "/fragmentos/manual-do-despertar.pdf";
@@ -637,6 +638,7 @@
 
       const bookButton = event.target.closest("[data-book-index]");
       if (bookButton) {
+        if (primeLibraryTileOnTouch(bookButton, event)) return;
         if (bookButton.closest(".preportal, .preportal-page")) {
           const book = books[Number(bookButton.dataset.bookIndex)];
           if (book?.id === FRAGMENT_BOOK_ID) {
@@ -2486,6 +2488,30 @@
     return window.matchMedia("(hover: none), (pointer: coarse)").matches;
   }
 
+  function usesLibraryTouchReveal() {
+    return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 760px)").matches;
+  }
+
+  function primeLibraryTileOnTouch(tile, event) {
+    if (!tile?.classList?.contains("library-tile")) return false;
+    if (!usesLibraryTouchReveal()) return false;
+    if (tile.classList.contains(LIBRARY_TILE_REVEALED_CLASS)) return false;
+
+    const grid = tile.closest(".library-grid, .preportal-library-grid");
+    if (!grid) return false;
+
+    event.preventDefault();
+    grid.querySelectorAll(`.${LIBRARY_TILE_REVEALED_CLASS}`).forEach((otherTile) => {
+      if (otherTile === tile) return;
+      otherTile.classList.remove(LIBRARY_TILE_REVEALED_CLASS);
+      otherTile.setAttribute("aria-expanded", "false");
+    });
+    tile.classList.add(LIBRARY_TILE_REVEALED_CLASS);
+    tile.setAttribute("aria-expanded", "true");
+    tile.focus?.({ preventScroll: true });
+    return true;
+  }
+
   function isReaderControlInteractionActive() {
     const active = document.activeElement;
     const keyboardFocus = Boolean(
@@ -3820,6 +3846,7 @@
         node.classList.toggle("library-tile--fragment-read", hasFragmentRead(book));
         node.disabled = false;
         node.setAttribute("aria-disabled", book.available ? "false" : "true");
+        node.setAttribute("aria-expanded", "false");
         node.title = book.available ? `Abrir ${book.title}` : `${book.title} · Arquivo selado`;
         const cover = node.querySelector(".library-tile__cover");
         setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
@@ -3974,6 +4001,7 @@
       node.classList.toggle("library-tile--fragment-read", hasFragmentRead(book));
       node.disabled = false;
       node.setAttribute("aria-disabled", externalFragmentAvailable ? "false" : "true");
+      node.setAttribute("aria-expanded", "false");
       node.title = externalFragmentAvailable ? `Ir ao fragmento de ${book.title}` : `${book.title} · Arquivo selado`;
       const cover = node.querySelector(".library-tile__cover");
       setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
