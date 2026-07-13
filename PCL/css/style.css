@@ -2562,3 +2562,867 @@ body.is-ready .internal-page {
     scroll-behavior: auto !important;
   }
 }
+
+/* Portal PSEU: acabamento visual inicial para dashboard e biblioteca. */
+.app-experience {
+  --portal-max: 1480px;
+  --glass: rgba(8, 10, 16, 0.78);
+  --glass-deep: rgba(5, 7, 12, 0.92);
+  --gold-soft: rgba(207, 176, 106, 0.18);
+  --violet-soft: rgba(134, 87, 240, 0.2);
+  --blue-soft: rgba(75, 217, 245, 0.14);
+  --red-soft: rgba(177, 18, 38, 0.16);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(134, 87, 240, 0.2), transparent 22rem),
+    radial-gradient(circle at 82% 12%, rgba(75, 217, 245, 0.11), transparent 24rem),
+    radial-gradient(circle at 74% 72%, rgba(177, 18, 38, 0.08), transparent 24rem),
+    linear-gradient(145deg, #020204 0%, #050711 44%, #030306 100%);
+}
+
+.app-experience .content-wrap {
+  width: min(var(--portal-max), calc(100% - 44px));
+  padding-top: 34px;
+}
+
+.app-experience .topbar {
+  width: min(var(--portal-max), calc(100% - 28px));
+  margin: 14px auto 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 42%),
+    rgba(3, 4, 8, 0.74);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-experience .brand {
+  gap: 12px;
+}
+
+.app-experience .brand-mark {
+  color: var(--gold);
+  border-color: rgba(207, 176, 106, 0.28);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(207, 176, 106, 0.2), transparent 58%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.app-experience .nav-links {
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.app-experience .nav-links a.active {
+  background:
+    linear-gradient(135deg, rgba(134, 87, 240, 0.52), rgba(75, 217, 245, 0.14)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 10px 28px rgba(134, 87, 240, 0.18);
+}
+
+.app-experience .cinematic-panel,
+.app-experience .cinematic-card,
+.app-experience .login-panel,
+.app-experience .book-tile {
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 34%),
+    radial-gradient(circle at 80% 0%, rgba(207, 176, 106, 0.06), transparent 24rem),
+    var(--glass);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.app-experience .dashboard-hero,
+.app-experience .library-header {
+  min-height: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(100deg, rgba(5, 6, 10, 0.98) 0%, rgba(10, 11, 20, 0.78) 48%, rgba(5, 6, 10, 0.94) 100%),
+    radial-gradient(circle at 21% 28%, rgba(134, 87, 240, 0.22), transparent 19rem),
+    radial-gradient(circle at 76% 35%, rgba(75, 217, 245, 0.12), transparent 17rem),
+    radial-gradient(circle at 88% 78%, rgba(207, 176, 106, 0.11), transparent 18rem);
+}
+
+.app-experience .dashboard-hero::before,
+.app-experience .library-header::before {
+  background:
+    linear-gradient(90deg, rgba(207, 176, 106, 0.08), transparent 32%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 7rem);
+  opacity: 0.34;
+}
+
+.app-experience .dashboard-hero h1,
+.app-experience .library-header h1 {
+  max-width: 10.5ch;
+  font-size: clamp(2.55rem, 5.8vw, 5.4rem);
+  line-height: 0.94;
+}
+
+.app-experience .hero-copy {
+  max-width: 58ch;
+}
+
+.app-experience .button-primary {
+  border-color: rgba(207, 176, 106, 0.34);
+  background:
+    linear-gradient(135deg, rgba(134, 87, 240, 0.96), rgba(12, 132, 220, 0.9)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 16px 38px rgba(134, 87, 240, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.app-experience .button-ghost,
+.app-experience .button-small {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.app-experience .portal-scene {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(134, 87, 240, 0.22), transparent 34%),
+    radial-gradient(circle at 50% 58%, rgba(75, 217, 245, 0.12), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 42%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.app-experience .portal-scene-ring {
+  border-color: rgba(207, 176, 106, 0.3);
+  box-shadow:
+    0 0 52px rgba(134, 87, 240, 0.18),
+    0 0 100px rgba(75, 217, 245, 0.08),
+    inset 0 0 42px rgba(255, 255, 255, 0.04);
+}
+
+.app-experience .continue-grid {
+  align-items: stretch;
+}
+
+.app-experience .continue-feature {
+  grid-template-columns: minmax(210px, 0.34fr) minmax(0, 1fr);
+  min-height: 430px;
+}
+
+.app-experience .continue-side,
+.app-experience .history-card,
+.app-experience .ecosystem-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    rgba(6, 8, 13, 0.86);
+}
+
+.app-experience .book-cover,
+.app-experience .mini-cover {
+  border-color: rgba(255, 255, 255, 0.11);
+  background-blend-mode: screen, normal;
+}
+
+.app-experience .book-cover span,
+.app-experience .mini-cover span {
+  color: #fff7df;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-experience .cover-awakening {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 233, 170, 0.44), transparent 6rem),
+    radial-gradient(circle at 72% 20%, rgba(134, 87, 240, 0.4), transparent 9rem),
+    radial-gradient(circle at 22% 72%, rgba(75, 217, 245, 0.2), transparent 8rem),
+    linear-gradient(145deg, #060711, #17123c 46%, #090a10);
+}
+
+.app-experience .cover-stoic,
+.app-experience .cover-gold {
+  background:
+    radial-gradient(circle at 55% 25%, rgba(207, 176, 106, 0.54), transparent 7rem),
+    radial-gradient(circle at 24% 78%, rgba(134, 87, 240, 0.18), transparent 7rem),
+    linear-gradient(145deg, #09090c, #30251b 52%, #0c1017);
+}
+
+.app-experience .cover-blue {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(75, 217, 245, 0.34), transparent 7rem),
+    radial-gradient(circle at 24% 72%, rgba(134, 87, 240, 0.18), transparent 7rem),
+    linear-gradient(145deg, #071018, #102536 50%, #080b12);
+}
+
+.app-experience .cover-violet {
+  background:
+    radial-gradient(circle at 66% 25%, rgba(134, 87, 240, 0.45), transparent 7rem),
+    linear-gradient(145deg, #0c0712, #1b1230 52%, #08080e);
+}
+
+.app-experience .cover-red {
+  background:
+    radial-gradient(circle at 68% 30%, rgba(177, 18, 38, 0.42), transparent 7rem),
+    linear-gradient(145deg, #11070a, #2b0c14 52%, #07070a);
+}
+
+.app-experience .library-header {
+  display: grid;
+  align-content: end;
+  gap: 8px;
+}
+
+.app-experience .library-search {
+  max-width: 620px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent),
+    rgba(0, 0, 0, 0.2);
+}
+
+.app-experience .filter-chip {
+  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.app-experience .filter-chip:hover {
+  transform: translateY(-1px);
+  color: var(--text);
+  border-color: rgba(207, 176, 106, 0.2);
+}
+
+.app-experience .library-group {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 32%),
+    rgba(255, 255, 255, 0.012);
+}
+
+.app-experience .library-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-experience .book-tile {
+  min-height: 100%;
+  transition: opacity 180ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+
+.app-experience .book-tile:hover {
+  transform: translateY(-5px);
+}
+
+.app-experience .book-tile.is-hidden {
+  display: none;
+}
+
+.app-experience .book-progress-track {
+  height: 7px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.app-experience .book-progress-track span {
+  background: linear-gradient(90deg, var(--blue), var(--violet), var(--gold));
+  box-shadow: 0 0 18px rgba(134, 87, 240, 0.28);
+}
+
+.app-experience .locked {
+  opacity: 0.74;
+}
+
+.app-experience .locked:hover {
+  opacity: 0.9;
+}
+
+.app-experience .status {
+  letter-spacing: 0.14em;
+}
+
+.app-experience .available {
+  color: #a9f2ff;
+}
+
+.app-experience .locked-status {
+  color: #e2c783;
+}
+
+.app-experience .section-lead h2,
+.app-experience .library-group-head h2 {
+  color: rgba(244, 239, 228, 0.92);
+  font-size: clamp(1.35rem, 2.4vw, 2.2rem);
+  line-height: 1.08;
+}
+
+.app-experience .history-grid {
+  margin-top: 18px;
+}
+
+@media (max-width: 1180px) {
+  .app-experience .dashboard-hero,
+  .app-experience .continue-feature {
+    grid-template-columns: 1fr;
+  }
+
+  .app-experience .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .app-experience .content-wrap,
+  .app-experience .topbar {
+    width: min(100% - 24px, var(--portal-max));
+  }
+
+  .app-experience .topbar {
+    margin-top: 10px;
+    padding: 14px;
+  }
+
+  .app-experience .brand-copy small {
+    display: none;
+  }
+
+  .app-experience .nav-links {
+    width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .app-experience .nav-links a {
+    white-space: nowrap;
+  }
+
+  .app-experience .dashboard-hero,
+  .app-experience .library-header {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .app-experience .dashboard-hero h1,
+  .app-experience .library-header h1 {
+    max-width: 12ch;
+  }
+
+  .app-experience .library-grid,
+  .app-experience .history-grid,
+  .app-experience .ecosystem-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-experience .library-group {
+    padding: 12px;
+  }
+
+  .app-experience .book-cover {
+    min-height: 220px;
+  }
+
+  .app-experience .hero-actions .button {
+    width: 100%;
+  }
+}
+
+/* MOBILE UX PASS 1: preview estatico do Portal PSEU. */
+@media (max-width: 900px) {
+  .entry-home {
+    gap: 22px;
+    padding-block: 18px 34px;
+  }
+
+  .entry-hero-cinematic {
+    min-height: 64vh;
+    padding: clamp(22px, 6vw, 34px);
+    align-content: end;
+  }
+
+  .entry-portal {
+    min-height: auto;
+    padding: 28px 22px;
+  }
+
+  .entry-portal-ring {
+    top: 18px;
+    width: min(260px, 74%);
+  }
+
+  .entry-portal-core {
+    top: 42px;
+    width: 5.6rem;
+  }
+
+  .entry-portal-copy {
+    padding-top: 214px;
+  }
+
+  .app-experience .dashboard-hero {
+    min-height: auto;
+    padding: clamp(22px, 5vw, 34px);
+    gap: 18px;
+  }
+
+  .app-experience .dashboard-hero h1 {
+    max-width: 14ch;
+    font-size: clamp(2rem, 8vw, 3.8rem);
+  }
+
+  .app-experience .portal-scene {
+    min-height: 230px;
+  }
+
+  .app-experience .portal-scene-core {
+    width: 7rem;
+  }
+
+  .app-experience .continue-feature {
+    min-height: auto;
+    gap: 18px;
+  }
+
+  .app-experience .large-cover {
+    min-height: 330px;
+  }
+
+  .app-experience .continue-copy,
+  .app-experience .book-meta {
+    gap: 8px;
+  }
+
+  .app-experience .library-header {
+    min-height: auto;
+    padding: clamp(22px, 5vw, 34px);
+    gap: 12px;
+  }
+
+  .app-experience .library-header h1 {
+    max-width: 12ch;
+    font-size: clamp(2.15rem, 9vw, 4.1rem);
+  }
+
+  .app-experience .library-search {
+    max-width: none;
+  }
+
+  .app-experience .library-group {
+    padding: 16px;
+  }
+
+  .app-experience .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .app-experience .book-tile {
+    padding: 12px;
+  }
+
+  .app-experience .book-cover {
+    min-height: clamp(230px, 42vw, 320px);
+  }
+
+  .app-experience .book-meta {
+    padding-inline: 0;
+  }
+
+  .app-experience .book-meta h2 {
+    font-size: clamp(1rem, 2.9vw, 1.28rem);
+  }
+
+  .app-experience .book-meta p {
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .entry-layout,
+  .content-wrap,
+  .reader-layout {
+    width: min(100% - 22px, 1180px);
+  }
+
+  .entry-hero-cinematic {
+    min-height: 58vh;
+    gap: 14px;
+  }
+
+  .entry-hero h1 {
+    font-size: clamp(2.1rem, 12vw, 3.4rem);
+  }
+
+  .hero-copy,
+  .entry-hero p {
+    font-size: 0.98rem;
+    line-height: 1.62;
+  }
+
+  .hero-actions {
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+  }
+
+  .entry-storyline {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .entry-portal-copy {
+    padding-top: 180px;
+  }
+
+  .entry-portal-notes {
+    gap: 6px;
+  }
+
+  .entry-portal-notes span {
+    padding: 8px 10px;
+  }
+
+  .app-experience .content-wrap {
+    padding-top: 18px;
+    padding-bottom: 56px;
+  }
+
+  .app-experience .topbar {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .app-experience .nav-links {
+    gap: 6px;
+  }
+
+  .app-experience .nav-links a {
+    padding: 9px 10px;
+  }
+
+  .app-experience .dashboard-hero,
+  .app-experience .library-header {
+    padding: 20px;
+  }
+
+  .app-experience .portal-scene {
+    min-height: 190px;
+    padding: 16px;
+  }
+
+  .app-experience .continue-grid {
+    gap: 14px;
+  }
+
+  .app-experience .continue-feature,
+  .app-experience .continue-side,
+  .app-experience .history-card,
+  .app-experience .ecosystem-card {
+    padding: 14px;
+  }
+
+  .app-experience .large-cover {
+    min-height: 290px;
+  }
+
+  .app-experience .meta-strip {
+    margin: 14px 0 18px;
+    gap: 7px;
+  }
+
+  .app-experience .library-filter-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .app-experience .filter-chip {
+    white-space: nowrap;
+  }
+
+  .app-experience .library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 12px;
+  }
+
+  .app-experience .book-cover {
+    min-height: clamp(190px, 52vw, 245px);
+    padding: 12px;
+  }
+
+  .app-experience .book-cover span {
+    max-width: 100%;
+    font-size: 0.78rem;
+  }
+
+  .app-experience .book-meta h2 {
+    font-size: 0.98rem;
+  }
+
+  .app-experience .book-meta p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .app-experience .book-meta .button {
+    width: 100%;
+  }
+
+  .book-progress:not(.reader-progress) {
+    margin: 10px 0;
+  }
+
+  .reader-page .reader-layout {
+    width: 100%;
+    height: calc(100vh - 0px);
+  }
+
+  .reader-page .reader-topbar {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 30;
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+    transition: opacity 0.24s ease, transform 0.24s ease;
+  }
+
+  .reader-page.is-reader-controls-visible .reader-topbar {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .reader-page .reader-layout {
+    padding-top: 0;
+  }
+
+  .reader-page .reader-content {
+    min-height: 100vh;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .reader-page .reader-pdf-container,
+  .reader-page [data-reader-chapters] {
+    min-height: 100vh;
+  }
+
+  .reader-page .reader-chapter {
+    width: min(100% - 30px, 680px);
+    margin-inline: auto;
+    padding-top: 70px;
+  }
+
+  .reader-page .reader-chapter p {
+    font-size: 1.02rem;
+    line-height: 1.82;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-experience .library-grid {
+    gap: 12px 10px;
+  }
+
+  .app-experience .book-tile {
+    padding: 10px;
+  }
+
+  .app-experience .book-cover {
+    min-height: clamp(170px, 50vw, 210px);
+  }
+
+  .app-experience .book-meta p,
+  .app-experience .book-progress {
+    display: none;
+  }
+
+  .app-experience .status {
+    font-size: 0.62rem;
+  }
+}
+
+/* MOBILE UX PASS 1.1: ajuste fino de cortes no preview responsivo. */
+@media (max-width: 760px) {
+  html,
+  body,
+  .page-shell,
+  .content-wrap,
+  .app-experience,
+  .reader-page {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .app-experience *,
+  .reader-page * {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .app-experience .content-wrap {
+    width: min(100% - 20px, var(--portal-max));
+    padding-top: 14px;
+  }
+
+  .app-experience .topbar {
+    width: min(100% - 20px, var(--portal-max));
+    align-items: center;
+  }
+
+  .app-experience .dashboard-hero,
+  .app-experience .library-header {
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .app-experience .dashboard-hero h1,
+  .app-experience .library-header h1 {
+    max-width: 100%;
+    font-size: clamp(1.82rem, 8.8vw, 2.75rem);
+    line-height: 1.02;
+  }
+
+  .app-experience .hero-copy {
+    font-size: 0.94rem;
+    line-height: 1.55;
+  }
+
+  .app-experience .hero-actions {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .app-experience .hero-actions .button {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .app-experience .portal-scene {
+    min-height: 168px;
+    padding: 14px;
+  }
+
+  .app-experience .continue-grid {
+    gap: 12px;
+  }
+
+  .app-experience .continue-feature,
+  .app-experience .continue-side,
+  .app-experience .history-card,
+  .app-experience .ecosystem-card,
+  .app-experience .library-group {
+    padding: 12px;
+  }
+
+  .app-experience .large-cover {
+    min-height: 240px;
+  }
+
+  .app-experience .mini-tile {
+    grid-template-columns: minmax(82px, 0.34fr) minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .app-experience .mini-cover {
+    min-height: 116px;
+    padding: 10px;
+  }
+
+  .app-experience .meta-strip {
+    gap: 6px;
+  }
+
+  .app-experience .meta-strip span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .app-experience .library-grid {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .app-experience .book-tile {
+    min-width: 0;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .app-experience .book-cover {
+    min-height: clamp(158px, 46vw, 205px);
+    padding: 10px;
+  }
+
+  .reader-page .reader-chapter {
+    width: min(100% - 24px, 680px);
+  }
+}
+
+@media (max-width: 430px) {
+  .app-experience .dashboard-hero,
+  .app-experience .library-header {
+    padding: 16px;
+  }
+
+  .app-experience .portal-scene {
+    min-height: 154px;
+  }
+
+  .app-experience .large-cover {
+    min-height: 220px;
+  }
+
+  .app-experience .book-cover {
+    min-height: clamp(148px, 44vw, 184px);
+  }
+}
+
+/* MOBILE LAYOUT POLISH: mesma regua visual para paginas estaticas do preview. */
+@media (max-width: 760px) {
+  .app-experience {
+    --pseu-preview-mobile-width: min(100%, 340px);
+  }
+
+  .app-experience .topbar,
+  .app-experience .content-wrap,
+  .app-experience .dashboard-hero,
+  .app-experience .library-header,
+  .app-experience .continue-feature,
+  .app-experience .continue-side,
+  .app-experience .history-card,
+  .app-experience .ecosystem-card,
+  .app-experience .library-group {
+    width: var(--pseu-preview-mobile-width);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .app-experience .dashboard-hero,
+  .app-experience .library-header {
+    align-items: stretch;
+  }
+
+  .app-experience .portal-scene,
+  .app-experience .large-cover,
+  .app-experience .hero-actions,
+  .app-experience .meta-strip,
+  .app-experience .library-grid {
+    width: 100%;
+  }
+
+  .app-experience .dashboard-hero h1,
+  .app-experience .library-header h1,
+  .app-experience .section-lead h2,
+  .app-experience .library-group-head h2 {
+    overflow-wrap: normal;
+    text-wrap: balance;
+  }
+
+  .app-experience .book-tile {
+    min-height: 0;
+  }
+}

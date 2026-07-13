@@ -11067,3 +11067,294 @@ body.is-reader-debug .reader-hud {
     touch-action: pan-x pan-y pinch-zoom;
   }
 }
+
+/* Missao final do funil: polish premium sem redesenhar a estrutura. */
+.preportal-page--call .call-official__scene--key {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(211, 167, 90, 0.08), transparent 24rem),
+    linear-gradient(180deg, rgba(2, 2, 4, 0), rgba(2, 2, 4, 0.22) 54%, rgba(2, 2, 4, 0.02));
+}
+
+.preportal-page--call .call-official__manifesto {
+  background: transparent;
+  box-shadow: none;
+  text-shadow:
+    0 20px 46px rgba(0, 0, 0, 0.88),
+    0 0 26px rgba(0, 0, 0, 0.46);
+}
+
+.preportal-page--call .call-official__manifesto h2 {
+  text-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.92),
+    0 0 18px rgba(2, 2, 4, 0.64),
+    0 0 30px rgba(122, 216, 255, 0.06);
+}
+
+.preportal-page--call .call-cinema__header {
+  z-index: 7;
+}
+
+.preportal-page--call .call-cinema__signature {
+  opacity: 0.82;
+  text-shadow: 0 14px 24px rgba(0, 0, 0, 0.72);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile {
+  transform-style: preserve-3d;
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    border-color 260ms ease,
+    box-shadow 360ms ease,
+    filter 260ms ease;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile::before {
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.78), rgba(226, 212, 178, 0.52)),
+    rgba(247, 240, 219, 0.52);
+  filter: none;
+  opacity: 0.16;
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile::after {
+  z-index: 1;
+  opacity: 0.28;
+  background:
+    radial-gradient(ellipse at 50% 68%, rgba(241, 209, 132, 0.18), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 58%);
+  mix-blend-mode: screen;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile:hover,
+.preportal-page--library .preportal-library-grid .library-tile:focus,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible {
+  transform: translateY(-7px) translateZ(0);
+  border-color: rgba(241, 209, 132, 0.58);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 34px 76px rgba(0, 0, 0, 0.54),
+    0 18px 44px rgba(211, 167, 90, 0.12);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile:hover::before,
+.preportal-page--library .preportal-library-grid .library-tile:focus::before,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible::before {
+  opacity: 0.2;
+  transform: translateY(-3px) translateZ(10px);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile:hover::after,
+.preportal-page--library .preportal-library-grid .library-tile:focus::after,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible::after {
+  opacity: 0.42;
+  transform: translateY(-5px) translateZ(8px);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile__cover {
+  z-index: 2;
+  pointer-events: none;
+  filter: saturate(1.1) contrast(1.04) brightness(1.06);
+  transition:
+    transform 360ms cubic-bezier(0.2, 0.72, 0.18, 1),
+    filter 260ms ease,
+    outline-color 260ms ease,
+    box-shadow 360ms ease;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile:hover .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile:focus .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile:focus-visible .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile--locked:hover .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile--locked:focus .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile--locked:focus-visible .library-tile__cover {
+  transform: translateY(-5px) translateZ(34px) scale(1.018);
+  filter:
+    saturate(1.16)
+    contrast(1.06)
+    brightness(1.16);
+  outline-color: rgba(255, 250, 234, 0.26);
+  box-shadow:
+    0 38px 76px rgba(0, 0, 0, 0.72),
+    0 18px 42px rgba(211, 167, 90, 0.22),
+    0 0 0 1px rgba(255, 250, 234, 0.18);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile__description {
+  color: rgba(246, 241, 232, 0.84);
+}
+
+.preportal-page--library .library-key-final__object::before {
+  opacity: 0.98;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.34) 44%, transparent 72%),
+    radial-gradient(ellipse at 50% 82%, rgba(241, 209, 132, 0.16), transparent 64%);
+}
+
+.preportal-page--library .library-key-final__object::after {
+  box-shadow:
+    0 0 0 10px rgba(7, 4, 2, 0.96),
+    0 0 0 17px rgba(117, 77, 21, 0.2),
+    inset 0 0 0 10px rgba(18, 10, 3, 0.96),
+    inset 0 0 0 13px rgba(219, 166, 66, 0.16),
+    inset 34px 0 52px rgba(0, 0, 0, 0.7),
+    inset -34px 0 52px rgba(0, 0, 0, 0.7),
+    inset 0 0 86px rgba(0, 0, 0, 0.72),
+    0 52px 112px rgba(0, 0, 0, 0.68);
+}
+
+.recovered-archives__screen .recovered-archives__files::before {
+  content: "";
+  position: absolute;
+  left: -35px;
+  top: 28px;
+  bottom: 28px;
+  width: 3px;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(115deg, rgba(93, 7, 7, 0.64) 0 2px, rgba(201, 44, 34, 0.88) 2px 4px, rgba(65, 5, 5, 0.58) 4px 7px),
+    linear-gradient(180deg, transparent, rgba(178, 39, 31, 0.82), transparent);
+  box-shadow:
+    0 0 0 1px rgba(24, 2, 2, 0.68),
+    0 0 16px rgba(178, 39, 31, 0.24);
+  pointer-events: none;
+}
+
+.recovered-archives__screen .recovered-archives__file::after {
+  background:
+    radial-gradient(circle at 3px 50%, rgba(239, 198, 116, 0.95) 0 2px, rgba(113, 16, 14, 0.68) 3px 6px, transparent 7px),
+    repeating-linear-gradient(115deg, rgba(88, 7, 7, 0.7) 0 2px, rgba(201, 44, 34, 0.9) 2px 4px, rgba(54, 4, 4, 0.5) 4px 7px),
+    linear-gradient(90deg, rgba(139, 24, 20, 0.96), rgba(239, 190, 104, 0.34));
+  opacity: 0.92;
+}
+
+.recovered-archives__controls {
+  border-color: rgba(116, 213, 227, 0.26);
+  background:
+    linear-gradient(90deg, rgba(178, 45, 45, 0.1), transparent 18%, transparent 82%, rgba(116, 213, 227, 0.08)),
+    rgba(3, 5, 8, 0.78);
+}
+
+.recovered-archives__controls::after {
+  content: "DOSSIER / PLAYER";
+  position: absolute;
+  right: 18px;
+  top: -19px;
+  padding: 3px 7px;
+  border: 1px solid rgba(178, 45, 45, 0.36);
+  color: rgba(231, 82, 69, 0.6);
+  background: rgba(3, 5, 8, 0.86);
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .preportal-page--travessia .editorial-threshold--travessia {
+    min-height: 92svh;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(211, 167, 90, 0.08), transparent 28rem),
+      linear-gradient(180deg, rgba(2, 3, 8, 0.08), rgba(2, 3, 8, 0.46) 78%, rgba(2, 3, 8, 0.8));
+  }
+
+  .preportal-page--travessia .travessia-entry-background-video {
+    opacity: 0.74;
+  }
+}
+
+@media (max-width: 760px) {
+  .preportal-page--call > .call-cinema__header {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(14px, env(safe-area-inset-left));
+    z-index: 20;
+    opacity: 0.74;
+  }
+
+  .preportal-page--call .call-cinema__signature {
+    padding: 6px 8px;
+    border: 1px solid rgba(241, 209, 132, 0.2);
+    background: rgba(2, 2, 4, 0.28);
+    backdrop-filter: blur(8px);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+  }
+
+  .preportal-page--call .call-official__scene--key {
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(211, 167, 90, 0.06), transparent 17rem),
+      linear-gradient(180deg, rgba(2, 2, 4, 0.02), rgba(2, 2, 4, 0.2) 68%, rgba(2, 2, 4, 0.02));
+  }
+
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    transform: none;
+  }
+
+  .preportal-page--call .call-official__cta {
+    width: min(100%, 264px);
+    min-height: 46px;
+    padding: 12px 16px;
+    gap: 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    box-shadow:
+      0 18px 42px rgba(0, 0, 0, 0.42),
+      0 0 22px rgba(211, 167, 90, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    align-items: stretch;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    min-height: auto;
+    overflow: visible;
+    transform: none;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile:active,
+  .preportal-page--library .preportal-library-grid .library-tile:focus,
+  .preportal-page--library .preportal-library-grid .library-tile:focus-visible {
+    transform: translateY(-5px);
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__description {
+    max-height: none;
+    opacity: 1;
+    transform: none;
+    padding-top: 3px;
+    padding-bottom: 10px;
+    font-size: 0.62rem;
+    line-height: 1.34;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__mood {
+    padding-bottom: 4px;
+  }
+
+  .recovered-archives__screen .recovered-archives__files::before {
+    left: 18px;
+    right: 18px;
+    top: -7px;
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+
+  .recovered-archives__controls::after {
+    display: none;
+  }
+
+  .reader-layout {
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  .reader-page-shell[data-render-kind="pdfjs"] .reader-page-canvas[data-loaded="true"] {
+    pointer-events: auto;
+  }
+}

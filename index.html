@@ -398,21 +398,35 @@
               <h4 id="recovered-archive-title" data-recovered-title>ARQUIVO 01</h4>
               <div class="recovered-archives__frame">
                 <div class="recovered-archives__files" aria-label="Sequência de arquivos recuperados">
-                  <button class="recovered-archives__file" type="button" data-recovered-open="1">
-                    <span>ARQUIVO 01</span>
+                  <button class="recovered-archives__file" type="button" data-recovered-open="1" data-dossier-label="CONFIDENCIAL 01">
+                    <span>Dossiê 01</span>
+                    <em>Vai ter coragem?</em>
+                    <small>Arquivo confidencial</small>
                     <strong data-recovered-file-state="1">Disponível</strong>
                   </button>
-                  <button class="recovered-archives__file recovered-archives__file--locked" type="button" data-recovered-open="2" disabled>
-                    <span>ARQUIVO 02</span>
+                  <button class="recovered-archives__file recovered-archives__file--locked" type="button" data-recovered-open="2" data-dossier-label="CONFIDENCIAL 02" disabled>
+                    <span>Dossiê 02</span>
+                    <em>Poucos chegam até aqui.</em>
+                    <small>Arquivo confidencial</small>
                     <strong data-recovered-file-state="2">Bloqueado</strong>
                   </button>
-                  <button class="recovered-archives__file recovered-archives__file--locked" type="button" data-recovered-open="3" disabled>
-                    <span>ARQUIVO 03</span>
+                  <button class="recovered-archives__file recovered-archives__file--locked" type="button" data-recovered-open="3" data-dossier-label="CONFIDENCIAL 03" disabled>
+                    <span>Dossiê 03</span>
+                    <em>Depois disso não existe retorno.</em>
+                    <small>Arquivo confidencial</small>
                     <strong data-recovered-file-state="3">Bloqueado</strong>
                   </button>
                 </div>
                 <div class="recovered-archives__transmission">
-                  <video class="recovered-archives__video" data-recovered-video controls playsinline webkit-playsinline preload="metadata"></video>
+                  <video class="recovered-archives__video" data-recovered-video playsinline webkit-playsinline preload="metadata"></video>
+                  <div class="recovered-archives__controls" aria-label="Controles do arquivo recuperado">
+                    <button type="button" data-recovered-command="toggle">Reproduzir</button>
+                    <label>
+                      <span>Volume</span>
+                      <input type="range" min="0" max="1" step="0.05" value="0.85" data-recovered-volume aria-label="Volume do arquivo recuperado" />
+                    </label>
+                    <button type="button" data-recovered-command="fullscreen">Tela cheia</button>
+                  </div>
                   <p class="recovered-archives__notice" data-recovered-notice hidden>Este arquivo precisa ser assistido para liberar o próximo registro.</p>
                 </div>
               </div>

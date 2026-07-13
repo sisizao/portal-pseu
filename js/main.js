@@ -243,6 +243,8 @@
     recoveredArchiveStatus: document.querySelector("[data-recovered-status]"),
     recoveredArchiveNotice: document.querySelector("[data-recovered-notice]"),
     recoveredArchiveClose: document.querySelector("[data-recovered-close]"),
+    recoveredArchiveCommands: document.querySelectorAll("[data-recovered-command]"),
+    recoveredArchiveVolume: document.querySelector("[data-recovered-volume]"),
     recoveredArchiveOfferPoint: document.querySelector(".travessia-official__offer-prologue"),
     chapterList: document.getElementById("chapter-list"),
     imageStack: document.getElementById("image-stack"),
@@ -430,6 +432,15 @@
     els.recoveredArchiveVideo?.addEventListener("seeked", resetRecoveredArchiveWatchAnchor);
     els.recoveredArchiveVideo?.addEventListener("ended", handleRecoveredArchiveEnded);
     els.recoveredArchiveVideo?.addEventListener("timeupdate", handleRecoveredArchiveTimeUpdate);
+    els.recoveredArchiveVideo?.addEventListener("play", updateRecoveredArchiveControls);
+    els.recoveredArchiveVideo?.addEventListener("pause", updateRecoveredArchiveControls);
+    els.recoveredArchiveVideo?.addEventListener("ended", updateRecoveredArchiveControls);
+    els.recoveredArchiveCommands.forEach((button) => {
+      button.addEventListener("click", () => handleRecoveredArchiveCommand(button.dataset.recoveredCommand));
+    });
+    els.recoveredArchiveVolume?.addEventListener("input", () => {
+      setRecoveredArchiveVolume(Number(els.recoveredArchiveVolume.value));
+    });
     prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
     bindVideoFullscreenEvents(els.recoveredArchiveVideo);
 
@@ -464,8 +475,12 @@
         updateFunnelControls(key);
       });
       video.addEventListener("timeupdate", () => rememberFunnelVideo(video));
+      video.addEventListener("timeupdate", () => rememberControlledVideoTime(video));
+      video.addEventListener("seeking", () => preventControlledVideoSkip(video));
+      video.addEventListener("seeked", () => rememberControlledVideoTime(video));
       video.addEventListener("loadedmetadata", () => {
         setFunnelVideoUnavailable(video, false);
+        rememberControlledVideoTime(video);
         updateContinuityUi();
       });
       video.addEventListener("error", () => markFunnelVideoUnavailable(video));
@@ -625,8 +640,8 @@
         if (bookButton.closest(".preportal, .preportal-page")) {
           const book = books[Number(bookButton.dataset.bookIndex)];
           if (book?.id === FRAGMENT_BOOK_ID) {
-            rememberFragmentRead(book);
-            openFragmentReader({ track: false });
+            document.getElementById("fragmento-despertar")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            window.setTimeout(() => els.fragmentOpen?.focus?.({ preventScroll: true }), 420);
           }
           return;
         }
@@ -2852,6 +2867,44 @@
     return Math.max(0, Math.min(100, (video.currentTime / video.duration) * 100));
   }
 
+  function getControlledVideoTime(video) {
+    return Math.max(0, Number(video?.dataset?.maxWatchedTime || 0));
+  }
+
+  function setControlledVideoTime(video, seconds) {
+    if (!video || !Number.isFinite(seconds)) return;
+    const safeSeconds = Math.max(0, seconds);
+    video.dataset.controlledSeek = "true";
+    video.dataset.maxWatchedTime = String(Math.max(getControlledVideoTime(video), safeSeconds));
+    try {
+      video.currentTime = safeSeconds;
+    } catch {}
+    window.setTimeout(() => {
+      if (video.dataset.controlledSeek === "true") delete video.dataset.controlledSeek;
+    }, 120);
+  }
+
+  function rememberControlledVideoTime(video) {
+    if (!video || !Number.isFinite(video.currentTime)) return;
+    if (video.dataset.controlledSeek === "true") return;
+    const current = Math.max(0, video.currentTime);
+    const previous = getControlledVideoTime(video);
+    if (current >= previous) {
+      video.dataset.maxWatchedTime = String(current);
+    }
+  }
+
+  function preventControlledVideoSkip(video) {
+    if (!video || video.dataset.controlledSeek === "true") return;
+    const allowed = getControlledVideoTime(video);
+    const current = Number(video.currentTime || 0);
+    if (current > allowed + 1.25) {
+      setControlledVideoTime(video, allowed);
+      return;
+    }
+    rememberControlledVideoTime(video);
+  }
+
   function rememberFunnelVideo(video, force = false) {
     if (isProtectedPortalRoute()) return;
     const key = video?.dataset?.funnelVideo;
@@ -2880,7 +2933,7 @@
     const memory = key ? getFunnelVideoMemory(key) : null;
     if (!memory || memory.completed || Number(memory.seconds || 0) <= 2) return;
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.currentTime > 1) return;
-    video.currentTime = Math.min(Number(memory.seconds), Math.max(0, video.duration - 1));
+    setControlledVideoTime(video, Math.min(Number(memory.seconds), Math.max(0, video.duration - 1)));
   }
 
   function hasResumableFunnelVideo(key) {
@@ -3770,6 +3823,10 @@
         node.title = book.available ? `Abrir ${book.title}` : `${book.title} · Arquivo selado`;
         const cover = node.querySelector(".library-tile__cover");
         setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
+        if (cover) {
+          cover.draggable = false;
+          cover.setAttribute("draggable", "false");
+        }
         node.querySelector(".library-tile__number").textContent = String(book.number).padStart(2, "0");
         node.querySelector(".library-tile__title").textContent = book.title;
         node.querySelector(".library-tile__mood").textContent = book.mood;
@@ -3917,11 +3974,15 @@
       node.classList.toggle("library-tile--fragment-read", hasFragmentRead(book));
       node.disabled = false;
       node.setAttribute("aria-disabled", externalFragmentAvailable ? "false" : "true");
-      node.title = externalFragmentAvailable ? `Ler fragmento de ${book.title}` : `${book.title} · Arquivo selado`;
+      node.title = externalFragmentAvailable ? `Ir ao fragmento de ${book.title}` : `${book.title} · Arquivo selado`;
       const cover = node.querySelector(".library-tile__cover");
       setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
-      cover.loading = "eager";
-      cover.decoding = "async";
+      if (cover) {
+        cover.loading = "eager";
+        cover.decoding = "async";
+        cover.draggable = false;
+        cover.setAttribute("draggable", "false");
+      }
       node.querySelector(".library-tile__number").textContent = String(book.number).padStart(2, "0");
       node.querySelector(".library-tile__title").textContent = book.title;
       node.querySelector(".library-tile__mood").textContent = book.number === 18 ? "A Chave" : book.mood;
@@ -4056,6 +4117,42 @@
     });
   }
 
+  function updateRecoveredArchiveControls() {
+    const video = els.recoveredArchiveVideo;
+    els.recoveredArchiveCommands.forEach((button) => {
+      if (button.dataset.recoveredCommand === "toggle") {
+        button.textContent = !video || video.paused || video.ended ? "Reproduzir" : "Pausar";
+      }
+    });
+  }
+
+  function setRecoveredArchiveVolume(value) {
+    const video = els.recoveredArchiveVideo;
+    if (!video) return;
+    video.volume = clamp(value, 0, 1);
+    video.muted = video.volume === 0;
+  }
+
+  function handleRecoveredArchiveCommand(command) {
+    const video = els.recoveredArchiveVideo;
+    if (!video) return;
+
+    if (command === "toggle") {
+      if (video.paused || video.ended) {
+        const playPromise = video.play();
+        if (playPromise?.catch) playPromise.catch(() => {});
+      } else {
+        video.pause();
+      }
+      updateRecoveredArchiveControls();
+      return;
+    }
+
+    if (command === "fullscreen") {
+      requestVideoFullscreen(video);
+    }
+  }
+
   function getRecoveredArchiveWatch(index) {
     if (!state.recoveredArchives.watch[index]) {
       state.recoveredArchives.watch[index] = {
@@ -4095,6 +4192,8 @@
       prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
       els.recoveredArchiveVideo.src = toUrl(config.video);
       els.recoveredArchiveVideo.dataset.archiveIndex = String(index);
+      delete els.recoveredArchiveVideo.dataset.maxWatchedTime;
+      delete els.recoveredArchiveVideo.dataset.controlledSeek;
       els.recoveredArchiveVideo.load();
       els.recoveredArchiveVideo.addEventListener("loadedmetadata", () => {
         restoreRecoveredArchiveProgress(index);
@@ -4104,7 +4203,9 @@
       restoreRecoveredArchiveProgress(index);
       resetRecoveredArchiveWatchAnchor();
     }
-    els.recoveredArchiveVideo.controls = true;
+    els.recoveredArchiveVideo.controls = false;
+    setRecoveredArchiveVolume(Number(els.recoveredArchiveVolume?.value || 0.85));
+    updateRecoveredArchiveControls();
 
     els.recoveredArchiveScreen.hidden = false;
     els.recoveredArchiveScreen.setAttribute("aria-hidden", "false");
@@ -4128,17 +4229,17 @@
     const seconds = Number(state.recoveredArchives.progress[index] || 0);
     if (!video || !Number.isFinite(seconds) || seconds <= 1) return;
     if (Number.isFinite(video.duration) && video.duration > 0 && seconds >= video.duration - 1) return;
-    try {
-      video.currentTime = seconds;
-    } catch {}
+    setControlledVideoTime(video, seconds);
   }
 
   function handleRecoveredArchiveTimeUpdate() {
+    rememberControlledVideoTime(els.recoveredArchiveVideo);
     rememberRecoveredArchiveProgress();
     recordRecoveredArchiveWatchTime();
   }
 
   function markRecoveredArchiveSeeking() {
+    preventControlledVideoSkip(els.recoveredArchiveVideo);
     rememberRecoveredArchiveProgress();
     state.recoveredArchives.seeking = true;
   }

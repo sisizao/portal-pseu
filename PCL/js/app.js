@@ -674,6 +674,61 @@ function renderLibraryPage(root) {
   });
 }
 
+function setupLibrarySearch(root) {
+  const input = root.querySelector(".library-search input");
+  const cards = Array.from(root.querySelectorAll("[data-book-card-id]"));
+  const chips = Array.from(root.querySelectorAll(".filter-chip"));
+
+  if (input && cards.length) {
+    input.addEventListener("input", () => {
+      const query = input.value.trim().toLowerCase();
+
+      cards.forEach((card) => {
+        const haystack = card.textContent.toLowerCase();
+        card.classList.toggle("is-hidden", query.length > 0 && !haystack.includes(query));
+      });
+    });
+  }
+
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      chips.forEach((item) => item.classList.remove("active"));
+      chip.classList.add("active");
+    });
+  });
+}
+
+function setupResponsiveReaderControls(root) {
+  const topbar = document.querySelector(".reader-topbar");
+  if (!topbar) return;
+
+  let hideTimer = 0;
+  const mobileQuery = window.matchMedia("(max-width: 760px)");
+
+  const showControls = () => {
+    if (!mobileQuery.matches) return;
+    root.classList.add("is-reader-controls-visible");
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => {
+      if (!topbar.matches(":focus-within")) {
+        root.classList.remove("is-reader-controls-visible");
+      }
+    }, 2300);
+  };
+
+  root.addEventListener("pointerup", (event) => {
+    if (topbar.contains(event.target)) return;
+    showControls();
+  });
+  root.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      root.classList.remove("is-reader-controls-visible");
+    }
+  });
+  topbar.addEventListener("focusin", showControls);
+  topbar.addEventListener("pointerenter", showControls);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.body.classList.add("is-ready");
 
@@ -750,10 +805,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const libraryPage = document.querySelector("[data-library-page]");
   if (libraryPage) {
     renderLibraryPage(libraryPage);
+    setupLibrarySearch(libraryPage);
   }
 
   const readerPage = document.querySelector(".reader-page");
   if (readerPage) {
     renderPDFReader(readerPage);
+    setupResponsiveReaderControls(readerPage);
   }
 });
