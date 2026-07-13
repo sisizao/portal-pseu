@@ -11675,6 +11675,41 @@ body.is-reader-debug .reader-hud {
   }
 }
 
+/* Correção cirúrgica: Manual do Despertar sem película escura/amarelada. */
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"] {
+  filter: none;
+  background:
+    radial-gradient(ellipse at 50% 32%, rgba(255, 252, 240, 0.035), transparent 62%),
+    rgba(3, 3, 4, 0.96);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"]::before {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.7), rgba(229, 219, 194, 0.48)),
+    rgba(247, 240, 219, 0.44);
+  opacity: 0.13;
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"]::after {
+  border-color: transparent;
+  background: none;
+  opacity: 0;
+  mix-blend-mode: normal;
+}
+
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"] .library-tile__cover {
+  filter: saturate(1.05) contrast(1.05) brightness(1.04);
+}
+
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"]:hover .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"]:focus .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"]:focus-visible .library-tile__cover,
+.preportal-page--library .preportal-library-grid .library-tile[data-book-number="1"].library-tile--revealed .library-tile__cover {
+  filter: saturate(1.08) contrast(1.07) brightness(1.1);
+}
+
 /* Missao final do funil: polish premium sem redesenhar a estrutura. */
 .preportal-page--call .call-official__scene--key {
   background:

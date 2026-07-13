@@ -26,6 +26,7 @@
       touchStartY: 0,
       dragging: false,
       pinching: false,
+      lastViewportScale: 1,
       suppressClickUntil: 0,
     },
     controlsVisible: false,
@@ -2628,13 +2629,16 @@
 
   function handleReaderVisualViewportChange() {
     if (!isReaderOpen() || !isTouchReaderControls()) return;
+    const currentScale = Number(window.visualViewport?.scale || 1);
+    const returningToNormalScale = state.readerGesture.lastViewportScale > 1.01 && currentScale <= 1.01;
+    state.readerGesture.lastViewportScale = currentScale;
     state.readerGesture.pinching = true;
-    guardReaderGesture(1200);
+    guardReaderGesture(returningToNormalScale ? 2600 : 1200);
     cancelReaderSwipeForGesture();
     window.clearTimeout(handleReaderVisualViewportChange.timer);
     handleReaderVisualViewportChange.timer = window.setTimeout(() => {
       state.readerGesture.pinching = false;
-    }, 260);
+    }, returningToNormalScale ? 900 : 260);
   }
 
   function isReaderControlInteractionActive() {
@@ -3515,6 +3519,7 @@
       window.location.replace("admin-local.html");
       return;
     }
+    if (isReaderOpen()) return;
     if (isProtectedPortalPath()) {
       openProtectedPortalEntry();
       return;
@@ -5000,6 +5005,7 @@
 
   function closeReader() {
     if (!els.readerLayout) return;
+    if (isTouchReaderControls() && isReaderGestureGuarded()) return;
     const wasOpen = els.readerLayout.classList.contains("is-open");
     const book = getCurrentBook();
     const fragmentScope = isFragmentReaderScope(book);
