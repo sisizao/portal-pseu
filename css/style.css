@@ -8794,6 +8794,39 @@ body.is-reader-debug .reader-page-shell {
   }
 }
 
+body.is-ios-reader-safe .reader-layout,
+body.is-ios-reader-safe .reader-content,
+body.is-ios-reader-safe .reader-shell,
+body.is-ios-reader-safe .reader-hud__panel,
+body.is-ios-reader-safe .reader-toast,
+body.is-ios-reader-safe .reader-close {
+  backdrop-filter: none !important;
+}
+
+body.is-ios-reader-safe .reader-layout::before,
+body.is-ios-reader-safe .reader-layout::after,
+body.is-ios-reader-safe .reader-content::before,
+body.is-ios-reader-safe .reader-content::after,
+body.is-ios-reader-safe .reader-book__ambient,
+body.is-ios-reader-safe .reader-page-shell__glow,
+body.is-ios-reader-safe .reader-page-shell::before,
+body.is-ios-reader-safe .reader-page-shell__sheen {
+  display: none !important;
+  opacity: 0 !important;
+  filter: none !important;
+  transform: none !important;
+  mix-blend-mode: normal !important;
+}
+
+body.is-ios-reader-safe .reader-hud,
+body.is-ios-reader-safe .reader-page-shell,
+body.is-ios-reader-safe .reader-page-canvas,
+body.is-ios-reader-safe .reader-page-media,
+body.is-ios-reader-safe .reader-page-pdf {
+  filter: none !important;
+  will-change: auto !important;
+}
+
 /* Refinamento final do funil: biblioteca, Livro 18 e eixo investigativo. */
 .preportal-page--library .preportal-library-grid,
 .app-shell .library-grid {

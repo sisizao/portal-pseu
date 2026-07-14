@@ -75,8 +75,11 @@
     },
   };
   const readerSwipePointers = new Set();
+  const activeReaderRenderTasks = new Set();
   const READER_GESTURE_DRAG_THRESHOLD = 8;
   const READER_GESTURE_CLICK_GUARD_MS = 900;
+  const IOS_READER_CANVAS_MAX_SCALE = 1;
+  const IOS_READER_CANVAS_MAX_PIXELS = 1400000;
 
   const pdfSourceCache = new Map();
   const pdfDocumentCache = new Map();
@@ -1822,6 +1825,7 @@
 
   async function queueReaderFrames(book, spread, compact) {
     const token = ++state.renderToken;
+    cancelReaderRenderTasks();
     const requests = [];
     const fragmentScope = isFragmentReaderScope(book);
     const useImagePages = book.readerRenderMode !== "pdf" && Boolean(book.pageAssets?.length);
@@ -1903,9 +1907,8 @@
         );
         canvas.dataset.renderToken = String(token);
         if (!preserveFragmentCanvas) {
-          canvas.dataset.loaded = "";
-          canvas.style.display = "none";
-          canvas.style.opacity = "0";
+          releaseReaderCanvas(canvas);
+          canvas.dataset.renderToken = String(token);
         }
       }
     });
@@ -2115,17 +2118,19 @@
     if (!visible || !page || !canvas || !shell) return;
     if (token !== state.renderToken) return;
 
+    let renderCanvas = null;
     try {
       pdfDebug("CHECK", `render request`, `${book.id} | role=${role || "?"} | page=${page}`);
       shell.dataset.renderKind = "pdfjs";
       shell.classList.remove("is-blank");
       if (frame) frame.style.display = "none";
       const renderPage = pdfRenderPageFor(book, page);
-      const renderCanvas = fragmentScope ? document.createElement("canvas") : canvas;
+      const useFragmentCommitCanvas = fragmentScope && !isLikelyIosSafari();
+      renderCanvas = useFragmentCommitCanvas ? document.createElement("canvas") : canvas;
       const pageRender = await renderPdfPageToCanvas(pdfDoc, renderPage, renderCanvas, shell);
       if (token !== state.renderToken) return;
       if (pageRender) {
-        if (fragmentScope) {
+        if (fragmentScope && renderCanvas !== canvas) {
           const context = canvas.getContext("2d", { alpha: false });
           if (!context || renderCanvas.width <= 0 || renderCanvas.height <= 0) {
             throw new Error("fragment_canvas_commit_failed");
@@ -2161,6 +2166,10 @@
         els.body.dataset.loading = "false";
         els.readerBookStage?.classList.remove("is-turning");
       }
+    } finally {
+      if (fragmentScope && renderCanvas && renderCanvas !== canvas) {
+        releaseDetachedCanvas(renderCanvas);
+      }
     }
   }
 
@@ -2189,7 +2198,7 @@
     const baseViewport = page.getViewport({ scale: 1 });
     const scale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
     const viewport = page.getViewport({ scale });
-    const outputScale = window.devicePixelRatio || 1;
+    const outputScale = getReaderCanvasOutputScale(bounds);
     canvas.width = Math.max(1, Math.floor(bounds.width * outputScale));
     canvas.height = Math.max(1, Math.floor(bounds.height * outputScale));
     canvas.style.width = `${Math.floor(bounds.width)}px`;
@@ -2208,15 +2217,81 @@
     const offsetY = Math.max(0, (bounds.height - viewport.height) / 2);
     pdfDebug("CHECK", `renderTask start`, `p.${pageNumber} | offset=${Math.round(offsetX)}x${Math.round(offsetY)}`);
 
-    await page.render({
+    const renderTask = page.render({
       canvasContext: context,
       viewport,
       transform: [outputScale, 0, 0, outputScale, offsetX * outputScale, offsetY * outputScale],
       background: "rgba(0,0,0,1)",
-    }).promise;
+    });
+    activeReaderRenderTasks.add(renderTask);
+    try {
+      await renderTask.promise;
+    } catch (error) {
+      if (error?.name === "RenderingCancelledException") return null;
+      throw error;
+    } finally {
+      activeReaderRenderTasks.delete(renderTask);
+    }
     pdfDebug("CHECK", `renderTask end`, `p.${pageNumber}`);
 
     return true;
+  }
+
+  function cancelReaderRenderTasks() {
+    activeReaderRenderTasks.forEach((task) => {
+      try {
+        task?.cancel?.();
+      } catch {
+        // A render task can already be settled while Safari is unwinding a gesture.
+      }
+    });
+    activeReaderRenderTasks.clear();
+  }
+
+  function getReaderCanvasOutputScale(bounds) {
+    const rawScale = Number(window.devicePixelRatio || 1) || 1;
+    if (!isLikelyIosSafari()) return rawScale;
+
+    const cssPixels = Math.max(1, Number(bounds?.width || 0) * Number(bounds?.height || 0));
+    const memoryScale = Math.sqrt(IOS_READER_CANVAS_MAX_PIXELS / cssPixels);
+    return Math.max(0.75, Math.min(rawScale, IOS_READER_CANVAS_MAX_SCALE, memoryScale));
+  }
+
+  function clearCanvasSurface(canvas) {
+    if (!canvas) return;
+    try {
+      const width = Number(canvas.width || 0);
+      const height = Number(canvas.height || 0);
+      const context = width > 0 && height > 0 ? canvas.getContext?.("2d") : null;
+      context?.clearRect?.(0, 0, width, height);
+    } catch {
+      // Safari can throw while releasing a context during a gesture; width reset still frees the surface.
+    }
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  function releaseDetachedCanvas(canvas) {
+    clearCanvasSurface(canvas);
+    canvas.remove?.();
+  }
+
+  function releaseReaderCanvas(canvas) {
+    if (!canvas) return;
+    clearCanvasSurface(canvas);
+    canvas.dataset.loaded = "";
+    delete canvas.dataset.pageSource;
+    delete canvas.dataset.visiblePage;
+    delete canvas.dataset.readerRole;
+    canvas.style.display = "none";
+    canvas.style.visibility = "";
+    canvas.style.opacity = "0";
+    canvas.style.width = "";
+    canvas.style.height = "";
+  }
+
+  function releaseAllReaderCanvases() {
+    document.querySelectorAll(".reader-page-canvas").forEach((canvas) => releaseReaderCanvas(canvas));
   }
 
   function blendAtmospheres(left, right) {
@@ -2291,8 +2366,12 @@
     shell.dataset.renderKind = "fallback";
     shell.classList.add("is-blank");
     shell.querySelectorAll(".reader-page-media, .reader-page-pdf, .reader-page-canvas").forEach((node) => {
-      node.style.opacity = "0";
-      node.style.display = "none";
+      if (node.classList?.contains("reader-page-canvas")) {
+        releaseReaderCanvas(node);
+      } else {
+        node.style.opacity = "0";
+        node.style.display = "none";
+      }
     });
     const fallback = shell.querySelector?.("[data-reader-fallback]");
     if (fallback) {
@@ -4916,6 +4995,7 @@
     els.readerLayout.classList.add("is-open");
     els.readerLayout.setAttribute("aria-hidden", "false");
     els.body.classList.add("is-reader-open");
+    els.body.classList.toggle("is-ios-reader-safe", isLikelyIosSafari());
     els.readerLayout.dataset.readerScope = fragmentScope ? "fragment" : "portal";
     const touchMode = window.matchMedia("(hover: none)").matches;
     clearTimeout(state.controlsTimer);
@@ -4999,6 +5079,11 @@
     els.readerLayout.setAttribute("aria-hidden", "true");
     delete els.readerLayout.dataset.readerScope;
     els.body.classList.remove("is-reader-open");
+    els.body.classList.remove("is-ios-reader-safe");
+    state.renderToken += 1;
+    state.pendingFrames = 0;
+    cancelReaderRenderTasks();
+    releaseAllReaderCanvases();
     setExternalFragmentReaderShell(false);
     if (fragmentScope) {
       state.readerScope = null;
