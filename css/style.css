@@ -8794,6 +8794,120 @@ body.is-reader-debug .reader-page-shell {
   }
 }
 
+body.is-ios-funnel-safe .preportal-page--library {
+  overflow-x: clip;
+}
+
+body.is-ios-funnel-safe .preportal-page--library::before {
+  background:
+    linear-gradient(90deg, rgba(211, 167, 90, 0.12), transparent 12%, transparent 88%, rgba(211, 167, 90, 0.1)),
+    linear-gradient(180deg, rgba(11, 7, 2, 0.62), transparent 28%, rgba(0, 0, 0, 0.38) 76%);
+  opacity: 0.72;
+}
+
+body.is-ios-funnel-safe .preportal-page--library::after {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.38), transparent 14%, transparent 86%, rgba(0, 0, 0, 0.42));
+  opacity: 0.82;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .library-official__observer,
+body.is-ios-funnel-safe .preportal-page--library .library-official__smoke,
+body.is-ios-funnel-safe .preportal-page--library .library-official__beam {
+  display: none !important;
+  filter: none !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library *,
+body.is-ios-funnel-safe .preportal-page--library *::before,
+body.is-ios-funnel-safe .preportal-page--library *::after {
+  will-change: auto !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid {
+  perspective: none !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile,
+body.is-ios-funnel-safe .preportal-page--library .library-fragment,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__object {
+  transform-style: flat !important;
+  filter: none !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 18px 38px rgba(0, 0, 0, 0.38) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile::before,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile::after {
+  filter: none !important;
+  transform: none !important;
+  mix-blend-mode: normal !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile::before {
+  opacity: 0.13 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 240, 0.68), rgba(226, 212, 178, 0.42)),
+    rgba(247, 240, 219, 0.42) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile::after {
+  opacity: 0.18 !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 58%) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:hover,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:focus,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:focus-visible,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile--revealed {
+  transform: none !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    0 22px 48px rgba(0, 0, 0, 0.42) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile__cover,
+body.is-ios-funnel-safe .preportal-page--library .library-fragment__presence img,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__threshold-frame {
+  filter: none !important;
+  box-shadow:
+    0 16px 30px rgba(0, 0, 0, 0.46),
+    0 0 0 1px rgba(255, 250, 234, 0.1) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:hover .library-tile__cover,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:focus .library-tile__cover,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile:focus-visible .library-tile__cover,
+body.is-ios-funnel-safe .preportal-page--library .preportal-library-grid .library-tile--revealed .library-tile__cover {
+  transform: translateY(-3px) scale(1.01) !important;
+  filter: none !important;
+  box-shadow:
+    0 22px 42px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 250, 234, 0.14) !important;
+}
+
+body.is-ios-funnel-safe .preportal-page--library .editorial-threshold--library h2 .sensory-word,
+body.is-ios-funnel-safe .preportal-page--library .editorial-threshold--library h2 .sensory-letter,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__object::before,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__object::after,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__object .library-tile--key-final,
+body.is-ios-funnel-safe .preportal-page--library .library-key-final__object .library-tile__cover {
+  transform: none !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+body.is-ios-funnel-pinching .preportal-page--library,
+body.is-ios-funnel-pinching .preportal-page--library *,
+body.is-ios-funnel-pinching .preportal-page--library *::before,
+body.is-ios-funnel-pinching .preportal-page--library *::after {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
 body.is-ios-reader-safe .reader-layout,
 body.is-ios-reader-safe .reader-content,
 body.is-ios-reader-safe .reader-shell,

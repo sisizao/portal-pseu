@@ -28,6 +28,11 @@
       pinching: false,
       suppressClickUntil: 0,
     },
+    funnelGesture: {
+      pinching: false,
+      suppressInteractionsUntil: 0,
+      cleanupTimer: 0,
+    },
     controlsVisible: false,
     controlsTimer: 0,
     readerError: "",
@@ -374,6 +379,7 @@
     } catch {}
   }
   els.body.classList.toggle("is-portal-unlocked", state.portalUnlocked);
+  applyIosFunnelSafeMode();
 
   setupContentProvisioning();
   setupProtectedBooksBridge();
@@ -568,12 +574,19 @@
         guardReaderGesture();
         return;
       }
+      if (isIosFunnelGestureGuarded()) {
+        return;
+      }
       if (!isDesktopOperationsSidebar()) {
         els.appShell?.classList.remove("is-sidebar-expanded");
       }
       syncFunnelMedia();
     }, { passive: true });
     window.addEventListener("orientationchange", syncFunnelMedia);
+    document.addEventListener("touchstart", handleFunnelTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleFunnelTouchMove, { passive: true });
+    document.addEventListener("touchend", handleFunnelTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", handleFunnelTouchEnd, { passive: true });
 
     const handleReaderFrameLoad = (event) => {
       finalizeReaderFrameLoad(event.currentTarget);
@@ -656,6 +669,12 @@
     });
 
     document.addEventListener("click", (event) => {
+      if (!isReaderOpen() && isIosFunnelGestureGuarded()) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       const observerButton = event.target.closest("[data-observer-book-index][data-observer-page]");
       if (observerButton) {
         const index = Number(observerButton.dataset.observerBookIndex);
@@ -2604,6 +2623,11 @@
   function primeLibraryTileOnTouch(tile, event) {
     if (!tile?.classList?.contains("library-tile")) return false;
     if (!usesLibraryTouchReveal()) return false;
+    if (isIosFunnelGestureGuarded()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
     if (tile.classList.contains(LIBRARY_TILE_REVEALED_CLASS)) return false;
 
     const grid = tile.closest(".library-grid, .preportal-library-grid");
@@ -2619,6 +2643,64 @@
     tile.setAttribute("aria-expanded", "true");
     tile.focus?.({ preventScroll: true });
     return true;
+  }
+
+  function applyIosFunnelSafeMode() {
+    els.body?.classList.toggle("is-ios-funnel-safe", isLikelyIosSafari());
+  }
+
+  function guardIosFunnelGesture(duration = 900) {
+    if (!isLikelyIosSafari()) return;
+    state.funnelGesture.suppressInteractionsUntil = Math.max(
+      Number(state.funnelGesture.suppressInteractionsUntil || 0),
+      readerGestureNow() + duration
+    );
+    els.body?.classList.add("is-ios-funnel-pinching");
+  }
+
+  function isIosFunnelGestureGuarded() {
+    return Boolean(
+      isLikelyIosSafari()
+      && (
+        state.funnelGesture.pinching
+        || readerGestureNow() < Number(state.funnelGesture.suppressInteractionsUntil || 0)
+      )
+    );
+  }
+
+  function handleFunnelTouchStart(event) {
+    if (!isLikelyIosSafari() || isReaderOpen()) return;
+    if ((event.touches || []).length > 1) {
+      state.funnelGesture.pinching = true;
+      guardIosFunnelGesture(1100);
+    }
+  }
+
+  function handleFunnelTouchMove(event) {
+    if (!isLikelyIosSafari() || isReaderOpen()) return;
+    if ((event.touches || []).length > 1) {
+      state.funnelGesture.pinching = true;
+      guardIosFunnelGesture(1100);
+    }
+  }
+
+  function handleFunnelTouchEnd(event) {
+    if (!isLikelyIosSafari() || isReaderOpen()) return;
+    if ((event.touches || []).length > 0) {
+      guardIosFunnelGesture(900);
+      return;
+    }
+
+    if (state.funnelGesture.pinching) {
+      guardIosFunnelGesture(900);
+    }
+    state.funnelGesture.pinching = false;
+    window.clearTimeout(state.funnelGesture.cleanupTimer);
+    state.funnelGesture.cleanupTimer = window.setTimeout(() => {
+      if (!isIosFunnelGestureGuarded()) {
+        els.body?.classList.remove("is-ios-funnel-pinching");
+      }
+    }, 260);
   }
 
   function isReaderOpen() {
@@ -4201,8 +4283,10 @@
       const cover = node.querySelector(".library-tile__cover");
       setProvisionedImage(cover, getProvisionedCoverSource(book), book.title);
       if (cover) {
-        cover.loading = "eager";
+        cover.loading = index < 4 ? "eager" : "lazy";
         cover.decoding = "async";
+        cover.width = 300;
+        cover.height = 400;
         cover.draggable = false;
         cover.setAttribute("draggable", "false");
       }
@@ -4242,7 +4326,7 @@
       thresholdFrame.className = "library-key-final__threshold-frame";
       thresholdFrame.src = toUrl(keyThresholdFrameSource);
       thresholdFrame.alt = "Moldura de transição para a chave";
-      thresholdFrame.loading = "eager";
+      thresholdFrame.loading = "lazy";
       thresholdFrame.decoding = "async";
       els.libraryKeyFinal.prepend(thresholdFrame);
     }
