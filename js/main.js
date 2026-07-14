@@ -32,11 +32,14 @@
       pinching: false,
       suppressInteractionsUntil: 0,
       cleanupTimer: 0,
+      lastSnapshotAt: 0,
     },
     controlsVisible: false,
     controlsTimer: 0,
     readerError: "",
     lastBookId: "",
+    currentFunnelPageId: "funil-chamado",
+    currentFunnelScrollY: 0,
     bookStates: {},
     favoriteBooks: [],
     bookmarks: {},
@@ -91,6 +94,8 @@
   const funnelControlsTimers = new Map();
   const funnelProgressSavedAt = new Map();
   const CONTINUITY_STORAGE_KEY = "pseu.portal.continuity.v1";
+  const FUNNEL_SESSION_STORAGE_KEY = "pseu.portal.funnelSession.v1";
+  const FUNNEL_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
   const TRAVERSAL_NOTEBOOK_STORAGE_KEY = "pseu.portal.traversalNotebook.v1";
   const FUNNEL_PROGRESS_SAVE_MS = 3500;
   const LIBRARY_TILE_REVEALED_CLASS = "library-tile--revealed";
@@ -575,6 +580,7 @@
         return;
       }
       if (isIosFunnelGestureGuarded()) {
+        saveFunnelSessionSnapshot("resize-guarded");
         return;
       }
       if (!isDesktopOperationsSidebar()) {
@@ -582,7 +588,21 @@
       }
       syncFunnelMedia();
     }, { passive: true });
-    window.addEventListener("orientationchange", syncFunnelMedia);
+    window.addEventListener("orientationchange", () => {
+      saveFunnelSessionSnapshot("orientationchange");
+      if (isIosFunnelGestureGuarded()) return;
+      syncFunnelMedia();
+    });
+    window.addEventListener("pagehide", () => saveFunnelSessionSnapshot("pagehide"), { passive: true });
+    window.addEventListener("pageshow", (event) => {
+      applyIosFunnelSafeMode();
+      if (event.persisted) restoreFunnelSessionSnapshot("pageshow");
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        saveFunnelSessionSnapshot("visibility-hidden");
+      }
+    });
     document.addEventListener("touchstart", handleFunnelTouchStart, { passive: true });
     document.addEventListener("touchmove", handleFunnelTouchMove, { passive: true });
     document.addEventListener("touchend", handleFunnelTouchEnd, { passive: true });
@@ -2672,6 +2692,7 @@
     if (!isLikelyIosSafari() || isReaderOpen()) return;
     if ((event.touches || []).length > 1) {
       state.funnelGesture.pinching = true;
+      saveFunnelSessionSnapshot("pinch-start");
       guardIosFunnelGesture(1100);
     }
   }
@@ -2680,6 +2701,7 @@
     if (!isLikelyIosSafari() || isReaderOpen()) return;
     if ((event.touches || []).length > 1) {
       state.funnelGesture.pinching = true;
+      saveFunnelSessionSnapshot("pinch-move");
       guardIosFunnelGesture(1100);
     }
   }
@@ -2692,6 +2714,7 @@
     }
 
     if (state.funnelGesture.pinching) {
+      saveFunnelSessionSnapshot("pinch-end");
       guardIosFunnelGesture(900);
     }
     state.funnelGesture.pinching = false;
@@ -2939,7 +2962,13 @@
       entries.forEach((entry) => {
         if (!entry.isIntersecting || entry.intersectionRatio < 0.36) return;
         const match = targets.find(([id]) => id === entry.target.id);
-        if (match) rememberFunnelStage(match[1]);
+        if (match) {
+          if (!isIosFunnelGestureGuarded()) {
+            state.currentFunnelPageId = match[0];
+            saveFunnelSessionSnapshot("observer");
+          }
+          rememberFunnelStage(match[1]);
+        }
       });
     }, { threshold: [0.36, 0.62] });
     targets.forEach(([id]) => {
@@ -3471,10 +3500,14 @@
       options.beforeReveal?.();
       if (!isProtectedPortalRoute()) setUnlockedFunnelPages(resolvedTargetId);
       if (context) window.PSEU_ATMOSPHERE?.applyTheme?.(context);
-      document.getElementById(resolvedTargetId)?.scrollIntoView({
+      const targetSection = document.getElementById(resolvedTargetId);
+      targetSection?.scrollIntoView({
         behavior: options.instant ? "auto" : "smooth",
         block: "start",
       });
+      if (!isProtectedPortalRoute() && isExternalFunnelTarget(resolvedTargetId)) {
+        window.requestAnimationFrame(() => setCurrentFunnelPage(resolvedTargetId, "navigate"));
+      }
     };
 
     if (!shouldTraverse) {
@@ -3503,6 +3536,14 @@
 
   function setupHashRoutes() {
     window.addEventListener("hashchange", () => handleHashRoute());
+    window.addEventListener("popstate", () => {
+      if (!isReaderOpen() && isIosFunnelGestureGuarded()) {
+        saveFunnelSessionSnapshot("popstate-guarded");
+        restoreFunnelSessionSnapshot("popstate-guarded");
+        return;
+      }
+      handleHashRoute();
+    });
     if (isProtectedPortalEntryRoute()) {
       openProtectedPortalEntry();
       return;
@@ -3562,6 +3603,16 @@
     return target.startsWith("funil-") || target === "fragmento-despertar";
   }
 
+  function isFunnelPageId(targetId = "") {
+    const target = String(targetId || "");
+    return target === "funil-chamado" || target === "funil-biblioteca" || target === "funil-travessia";
+  }
+
+  function funnelDebug(label, detail = {}) {
+    if (!window.PSEU_DEV_MODE) return;
+    console.debug("[PSEU funnel]", label, detail);
+  }
+
   function getFunnelPageForTarget(targetId = "") {
     const target = String(targetId || "");
     if (target === "fragmento-despertar") return "funil-biblioteca";
@@ -3580,6 +3631,74 @@
       "funil-travessia": 3,
     };
     return stages[target] || 1;
+  }
+
+  function readFunnelSessionSnapshot() {
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem(FUNNEL_SESSION_STORAGE_KEY) || "{}");
+      const pageId = getFunnelPageForTarget(parsed.pageId) || "";
+      const updatedAt = Number(parsed.updatedAt || 0);
+      if (!pageId || !isFunnelPageId(pageId)) return null;
+      if (!updatedAt || Date.now() - updatedAt > FUNNEL_SESSION_MAX_AGE_MS) return null;
+      return {
+        pageId,
+        unlockedStage: clamp(Number(parsed.unlockedStage || getFunnelStageForTarget(pageId)), 1, 3),
+        scrollY: Math.max(0, Number(parsed.scrollY || 0)),
+        updatedAt,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function saveFunnelSessionSnapshot(reason = "state") {
+    if (isProtectedPortalRoute()) return;
+    const now = Date.now();
+    if (reason === "pinch-move" && now - Number(state.funnelGesture.lastSnapshotAt || 0) < 350) return;
+    state.funnelGesture.lastSnapshotAt = now;
+    const pageId = getFunnelPageForTarget(state.currentFunnelPageId) || "funil-chamado";
+    const scrollY = Math.max(0, Number(window.scrollY || window.pageYOffset || state.currentFunnelScrollY || 0));
+    state.currentFunnelPageId = pageId;
+    state.currentFunnelScrollY = scrollY;
+    try {
+      sessionStorage.setItem(FUNNEL_SESSION_STORAGE_KEY, JSON.stringify({
+        pageId,
+        unlockedStage: Math.max(getUnlockedFunnelStage(), getFunnelStageForTarget(pageId)),
+        scrollY,
+        updatedAt: now,
+      }));
+    } catch {}
+    funnelDebug("snapshot saved", { reason, pageId, scrollY });
+  }
+
+  function setCurrentFunnelPage(targetId = "funil-chamado", reason = "navigation") {
+    const pageId = getFunnelPageForTarget(targetId) || "funil-chamado";
+    state.currentFunnelPageId = pageId;
+    state.currentFunnelScrollY = Math.max(0, Number(window.scrollY || window.pageYOffset || 0));
+    saveFunnelSessionSnapshot(reason);
+  }
+
+  function restoreFunnelSessionSnapshot(reason = "restore") {
+    if (isProtectedPortalRoute()) return false;
+    const snapshot = readFunnelSessionSnapshot();
+    if (!snapshot) return false;
+
+    state.funnelUnlockedStage = Math.max(snapshot.unlockedStage, getFunnelStageForTarget(snapshot.pageId));
+    state.currentFunnelPageId = snapshot.pageId;
+    state.currentFunnelScrollY = snapshot.scrollY;
+    setUnlockedFunnelPages(snapshot.pageId, { skipSnapshot: true });
+    funnelDebug("snapshot restored", { reason, ...snapshot });
+
+    const restoreScroll = () => {
+      const targetTop = snapshot.scrollY || document.getElementById(snapshot.pageId)?.offsetTop || 0;
+      window.scrollTo({ top: targetTop, behavior: "auto" });
+    };
+    window.requestAnimationFrame(() => {
+      restoreScroll();
+      window.requestAnimationFrame(restoreScroll);
+      window.setTimeout(restoreScroll, 160);
+    });
+    return true;
   }
 
   function getUnlockedFunnelStage() {
@@ -3616,10 +3735,20 @@
     });
     els.body.dataset.funnelPage = targetPageId;
     els.body.dataset.funnelUnlockedStage = String(state.funnelUnlockedStage);
+    state.currentFunnelPageId = targetPageId;
+    if (!options.skipSnapshot) {
+      saveFunnelSessionSnapshot(options.reset ? "reset" : "unlock");
+    }
   }
 
   function applyInitialFunnelPage() {
     if (isProtectedPortalRoute()) return;
+    try {
+      if (isLikelyIosSafari() && "scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+    } catch (error) {}
+    if (restoreFunnelSessionSnapshot("initial")) return;
     state.funnelUnlockedStage = 1;
     setUnlockedFunnelPages("funil-chamado", { reset: true });
     if (window.location.hash) {
@@ -3662,6 +3791,11 @@
   function handleHashRoute(options = {}) {
     const hash = decodeURIComponent(window.location.hash || "").toLowerCase();
     if (!hash) return;
+    if (!isReaderOpen() && isIosFunnelGestureGuarded()) {
+      saveFunnelSessionSnapshot("hashchange-guarded");
+      restoreFunnelSessionSnapshot("hashchange-guarded");
+      return;
+    }
     if (hash === "#admin-pseu") {
       window.location.replace("admin-local.html");
       return;
