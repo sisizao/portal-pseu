@@ -79,6 +79,12 @@
       fragmentsRead: [],
       lastVideoId: "",
       videos: {},
+      recoveredArchives: {
+        unlocked: 1,
+        completed: [],
+        progress: {},
+        watch: {},
+      },
       updatedAt: null,
     },
   };
@@ -202,11 +208,13 @@
   // Caminhos das transmissões recuperadas exibidas antes do acesso final.
   const RECOVERED_ARCHIVE_FILES = [
     { index: 1, title: "ARQUIVO 01", status: "Transmissão recuperada / 01", video: "PCL/assets/videos/funnel/recovered-archive-01.mp4" },
-    { index: 2, title: "ARQUIVO 02", status: "Transmissão recuperada / 02", video: "escesqueleto/IMG_6445video 2.MP4" },
+    { index: 2, title: "ARQUIVO 02", status: "Transmissão recuperada / 02", video: "PCL/assets/videos/funnel/recovered-archive-02.mp4" },
     { index: 3, title: "ARQUIVO 03", status: "Transmissão recuperada / 03", video: "PCL/assets/videos/funnel/recovered-archive-03.mov" },
   ];
-  const RECOVERED_ARCHIVE_UNLOCK_RATIO = 0.9;
+  const RECOVERED_ARCHIVE_UNLOCK_RATIO = 0.995;
+  const RECOVERED_ARCHIVE_PROGRESS_SAVE_MS = 2500;
   let recoveredArchiveNoticeTimer = 0;
+  let recoveredArchiveProgressSavedAt = 0;
   let checkoutConfigPromise = null;
   let contentProvisioningRefreshTimer = 0;
   let traversalNotebookSaveTimer = 0;
@@ -371,6 +379,7 @@
     state.portalUnlocked = localStorage.getItem("pseu.portal.unlocked") === "1";
   }
   state.continuity = readContinuityState();
+  hydrateRecoveredArchiveState();
   state.traversalNotebook = readTraversalNotebook();
 
   if (isProtectedPortalPath()) {
@@ -459,6 +468,7 @@
     els.recoveredArchiveVideo?.addEventListener("play", updateRecoveredArchiveControls);
     els.recoveredArchiveVideo?.addEventListener("pause", updateRecoveredArchiveControls);
     els.recoveredArchiveVideo?.addEventListener("ended", updateRecoveredArchiveControls);
+    els.recoveredArchiveVideo?.addEventListener("ratechange", enforceRecoveredArchivePlaybackRate);
     els.recoveredArchiveCommands.forEach((button) => {
       button.addEventListener("click", () => handleRecoveredArchiveCommand(button.dataset.recoveredCommand));
     });
@@ -2898,8 +2908,77 @@
       fragmentsRead: [],
       lastVideoId: "",
       videos: {},
+      recoveredArchives: createDefaultRecoveredArchiveContinuity(),
       updatedAt: null,
     };
+  }
+
+  function createDefaultRecoveredArchiveContinuity() {
+    return {
+      unlocked: 1,
+      completed: [],
+      progress: {},
+      watch: {},
+    };
+  }
+
+  function normalizeRecoveredArchiveContinuity(source = {}) {
+    const fallback = createDefaultRecoveredArchiveContinuity();
+    const maxIndex = RECOVERED_ARCHIVE_FILES.length;
+    const completed = Array.from(new Set(
+      (Array.isArray(source.completed) ? source.completed : [])
+        .map((index) => Number(index))
+        .filter((index) => Number.isInteger(index) && index >= 1 && index <= maxIndex)
+    )).sort((a, b) => a - b);
+    const impliedUnlocked = completed.length ? Math.min(maxIndex, Math.max(...completed) + 1) : 1;
+    const unlocked = clamp(Number(source.unlocked || impliedUnlocked), 1, maxIndex);
+    const progress = {};
+    const progressSource = source.progress && typeof source.progress === "object" ? source.progress : {};
+    const watch = {};
+    const watchSource = source.watch && typeof source.watch === "object" ? source.watch : {};
+
+    RECOVERED_ARCHIVE_FILES.forEach(({ index }) => {
+      const seconds = Math.max(0, Number(progressSource[index] || 0));
+      if (Number.isFinite(seconds) && seconds > 0) progress[index] = seconds;
+
+      const storedWatch = watchSource[index] && typeof watchSource[index] === "object" ? watchSource[index] : {};
+      const watched = Math.max(0, Number(storedWatch.watched || 0));
+      const lastTime = Math.max(0, Number(storedWatch.lastTime || 0));
+      if (watched > 0 || lastTime > 0) {
+        watch[index] = {
+          watched,
+          lastTime,
+          lastTick: 0,
+        };
+      }
+    });
+
+    return {
+      ...fallback,
+      unlocked: Math.max(unlocked, impliedUnlocked),
+      completed,
+      progress,
+      watch,
+    };
+  }
+
+  function hydrateRecoveredArchiveState() {
+    const recovered = normalizeRecoveredArchiveContinuity(state.continuity.recoveredArchives);
+    state.recoveredArchives = {
+      ...state.recoveredArchives,
+      ...recovered,
+      activeIndex: 0,
+      seeking: false,
+    };
+    state.continuity.recoveredArchives = recovered;
+  }
+
+  function saveRecoveredArchiveState(options = {}) {
+    const now = Date.now();
+    if (!options.force && now - recoveredArchiveProgressSavedAt < RECOVERED_ARCHIVE_PROGRESS_SAVE_MS) return;
+    recoveredArchiveProgressSavedAt = now;
+    state.continuity.recoveredArchives = normalizeRecoveredArchiveContinuity(state.recoveredArchives);
+    saveContinuityState();
   }
 
   function readContinuityState() {
@@ -2913,6 +2992,7 @@
         maxFunnelStage: clamp(Number(parsed.maxFunnelStage || parsed.lastFunnelStage || 1), 1, 10),
         fragmentsRead: Array.isArray(parsed.fragmentsRead) ? parsed.fragmentsRead.filter(Boolean).slice(0, 18) : [],
         videos: parsed.videos && typeof parsed.videos === "object" ? parsed.videos : {},
+        recoveredArchives: normalizeRecoveredArchiveContinuity(parsed.recoveredArchives),
       };
     } catch {
       return fallback;
@@ -4574,6 +4654,12 @@
     video.muted = video.volume === 0;
   }
 
+  function enforceRecoveredArchivePlaybackRate() {
+    const video = els.recoveredArchiveVideo;
+    if (!video || Math.abs(Number(video.playbackRate || 1) - 1) < 0.01) return;
+    video.playbackRate = 1;
+  }
+
   function handleRecoveredArchiveCommand(command) {
     const video = els.recoveredArchiveVideo;
     if (!video) return;
@@ -4645,6 +4731,11 @@
       resetRecoveredArchiveWatchAnchor();
     }
     els.recoveredArchiveVideo.controls = false;
+    els.recoveredArchiveVideo.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
+    try {
+      els.recoveredArchiveVideo.disablePictureInPicture = true;
+    } catch {}
+    els.recoveredArchiveVideo.playbackRate = 1;
     setRecoveredArchiveVolume(Number(els.recoveredArchiveVolume?.value || 0.85));
     updateRecoveredArchiveControls();
 
@@ -4663,10 +4754,12 @@
     if (!video || !index || !Number.isFinite(video.currentTime)) return;
     if (video.ended) return;
     state.recoveredArchives.progress[index] = Math.max(0, video.currentTime);
+    saveRecoveredArchiveState();
   }
 
   function restoreRecoveredArchiveProgress(index) {
     const video = els.recoveredArchiveVideo;
+    if (state.recoveredArchives.completed.includes(index)) return;
     const seconds = Number(state.recoveredArchives.progress[index] || 0);
     if (!video || !Number.isFinite(seconds) || seconds <= 1) return;
     if (Number.isFinite(video.duration) && video.duration > 0 && seconds >= video.duration - 1) return;
@@ -4675,8 +4768,8 @@
 
   function handleRecoveredArchiveTimeUpdate() {
     rememberControlledVideoTime(els.recoveredArchiveVideo);
-    rememberRecoveredArchiveProgress();
     recordRecoveredArchiveWatchTime();
+    rememberRecoveredArchiveProgress();
   }
 
   function markRecoveredArchiveSeeking() {
@@ -4734,6 +4827,20 @@
     return Math.min(1, Number(watch.watched || 0) / duration);
   }
 
+  function hasRecoveredArchiveFullyWatched(index) {
+    const video = els.recoveredArchiveVideo;
+    const duration = Number(video?.duration || 0);
+    if (!video || !video.ended || !Number.isFinite(duration) || duration <= 0) return false;
+    const watch = getRecoveredArchiveWatch(index);
+    const watched = Number(watch.watched || 0);
+    if (watched >= duration * RECOVERED_ARCHIVE_UNLOCK_RATIO) {
+      watch.watched = duration;
+      watch.lastTime = duration;
+      return true;
+    }
+    return false;
+  }
+
   function recoveredArchiveNow() {
     return window.performance?.now?.() || Date.now();
   }
@@ -4755,9 +4862,10 @@
     if (!index) return;
 
     recordRecoveredArchiveWatchTime({ allowPaused: true });
-    if (getRecoveredArchiveWatchedRatio(index) < RECOVERED_ARCHIVE_UNLOCK_RATIO) {
+    if (!hasRecoveredArchiveFullyWatched(index)) {
       showRecoveredArchiveNotice();
       resetRecoveredArchiveWatchAnchor();
+      saveRecoveredArchiveState({ force: true });
       return;
     }
 
@@ -4781,6 +4889,7 @@
       RECOVERED_ARCHIVE_FILES.length,
       Math.max(state.recoveredArchives.unlocked, index + 1)
     );
+    saveRecoveredArchiveState({ force: true });
     updateRecoveredArchiveUi();
   }
 
@@ -4788,6 +4897,7 @@
     if (!els.recoveredArchiveScreen || els.recoveredArchiveScreen.hidden) return;
 
     rememberRecoveredArchiveProgress();
+    saveRecoveredArchiveState({ force: true });
     hideRecoveredArchiveNotice();
     els.recoveredArchiveVideo?.pause();
     els.recoveredArchiveScreen.hidden = true;
