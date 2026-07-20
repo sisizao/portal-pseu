@@ -12960,3 +12960,263 @@ body.is-reader-debug .reader-hud {
     margin-left: 38px !important;
   }
 }
+
+/* Polish mobile: Portal e Reader mais compactos sem alterar fluxo. */
+@media (max-width: 760px) {
+  .app-shell .topbar {
+    grid-template-columns: 38px minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "menu search search"
+      "identity identity profile" !important;
+    gap: 6px 8px !important;
+    padding: 8px 10px !important;
+    min-height: 0 !important;
+  }
+
+  .app-shell .mobile-menu-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 11px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .app-shell .search-shell {
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+
+  .app-shell .search-icon {
+    left: 12px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .app-shell .search-shell input {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 10px 0 32px !important;
+    font-size: 0.74rem !important;
+  }
+
+  .app-shell .topbar-identity {
+    align-items: flex-start !important;
+    text-align: left !important;
+    gap: 1px !important;
+    padding: 0 !important;
+  }
+
+  .app-shell .topbar-identity__eyebrow {
+    max-width: 100% !important;
+    font-size: 0.54rem !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0.13em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .app-shell .topbar-identity strong {
+    font-size: 0.72rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .app-shell .profile-chip {
+    justify-self: end !important;
+    width: auto !important;
+    min-height: 32px !important;
+    gap: 5px !important;
+    padding: 4px 6px !important;
+    border-radius: 12px !important;
+  }
+
+  .app-shell .profile-chip__avatar {
+    display: none !important;
+  }
+
+  .app-shell .profile-chip strong {
+    max-width: 76px !important;
+    font-size: 0.6rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .app-shell .profile-chip small {
+    display: none !important;
+  }
+
+  .app-shell .profile-chip .button,
+  .app-shell .portal-logout,
+  .portal-admin-link {
+    min-width: 42px !important;
+    min-height: 30px !important;
+    padding: 5px 7px !important;
+    font-size: 0.58rem !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .portal-admin-link {
+    max-width: 58px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .app-shell .section-heading {
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .app-shell .section-heading h2,
+  .app-shell .journey-banner h2 {
+    font-size: clamp(1.45rem, 8vw, 2.1rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .app-shell .section-heading p,
+  .app-shell .section-heading p[data-library-note],
+  .app-shell .signal-card p,
+  .app-shell .operation-panel p {
+    font-size: 0.82rem !important;
+    line-height: 1.48 !important;
+  }
+
+  .fragment-reader {
+    padding: 8px !important;
+    place-items: stretch !important;
+  }
+
+  .fragment-reader__shell {
+    width: 100% !important;
+    max-height: calc(100svh - 16px) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .fragment-reader__header,
+  .fragment-reader__footer {
+    gap: 8px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .fragment-reader__header button,
+  .fragment-reader__footer button {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .fragment-reader__stage {
+    min-height: 0 !important;
+    height: calc(100svh - 142px) !important;
+  }
+
+  .reader-shell {
+    padding: 6px 8px 10px !important;
+  }
+
+  .reader-hud {
+    top: max(6px, env(safe-area-inset-top)) !important;
+    left: 6px !important;
+    right: 6px !important;
+    max-width: calc(100vw - 12px) !important;
+  }
+
+  .reader-close {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    font-size: 1rem !important;
+  }
+
+  .reader-hud__panel {
+    max-width: calc(100vw - 46px) !important;
+    min-height: 34px !important;
+    margin-left: 38px !important;
+    padding: 4px 6px !important;
+    gap: 5px !important;
+    border-radius: 11px !important;
+  }
+
+  .reader-hud__meta {
+    flex-basis: 74px !important;
+    max-width: 88px !important;
+  }
+
+  .reader-hud__meta .eyebrow,
+  .reader-hud__meta small,
+  .reader-hud__progress small {
+    display: none !important;
+  }
+
+  .reader-hud__meta strong {
+    font-size: 0.68rem !important;
+  }
+
+  .reader-hud__nav {
+    gap: 3px !important;
+  }
+
+  .reader-arrow,
+  .reader-tool {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .reader-hud__progress {
+    min-width: 38px !important;
+    max-width: 48px !important;
+  }
+
+  .reader-hud__progress span {
+    font-size: 0.68rem !important;
+  }
+
+  .reader-book {
+    max-height: calc(100svh - 58px) !important;
+  }
+
+  .reader-book__cover,
+  .reader-book__spread {
+    max-width: 100% !important;
+    max-height: calc(100svh - 66px) !important;
+  }
+
+  .reader-page-media,
+  .reader-page-canvas,
+  .reader-page-pdf {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-shell .topbar {
+    padding: 7px 8px !important;
+    gap: 5px 7px !important;
+  }
+
+  .app-shell .profile-chip strong {
+    max-width: 64px !important;
+  }
+
+  .app-shell .profile-chip .button,
+  .app-shell .portal-logout,
+  .portal-admin-link {
+    min-width: 38px !important;
+    padding-inline: 6px !important;
+    font-size: 0.54rem !important;
+  }
+
+  .reader-hud__panel {
+    max-width: calc(100vw - 44px) !important;
+    margin-left: 36px !important;
+  }
+
+  .reader-hud__meta {
+    max-width: 72px !important;
+  }
+}

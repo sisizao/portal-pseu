@@ -696,6 +696,44 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
       box-shadow: 0 0 0 3px rgba(215, 173, 98, 0.1);
     }
 
+    .password-field {
+      position: relative;
+      display: grid;
+      align-items: center;
+    }
+
+    .password-field input {
+      padding-right: 52px;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      transform: translateY(-50%);
+      border: 1px solid rgba(215, 173, 98, 0.22);
+      color: rgba(244, 238, 226, 0.72);
+      background: rgba(255, 255, 255, 0.035);
+      cursor: pointer;
+      transition:
+        border-color 0.18s ease,
+        color 0.18s ease,
+        background 0.18s ease;
+    }
+
+    .password-toggle:hover,
+    .password-toggle:focus-visible,
+    .password-toggle[aria-pressed="true"] {
+      outline: none;
+      color: var(--text);
+      border-color: rgba(215, 173, 98, 0.52);
+      background: rgba(215, 173, 98, 0.1);
+    }
+
     .message {
       min-height: 24px;
       color: var(--gold);
@@ -911,7 +949,21 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
         </label>
         <label>
           Criar senha
-          <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+          <span class="password-field">
+            <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+              <span aria-hidden="true">&#128065;</span>
+            </button>
+          </span>
+        </label>
+        <label>
+          Confirmar senha
+          <span class="password-field">
+            <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="password-toggle" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false">
+              <span aria-hidden="true">&#128065;</span>
+            </button>
+          </span>
         </label>
         <button class="submit" type="submit">Ativar acesso</button>
       </form>
@@ -966,10 +1018,25 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 
     tabs.forEach((tab) => tab.addEventListener("click", () => setMode(tab.dataset.mode)));
     modeSwitches.forEach((control) => control.addEventListener("click", () => setMode(control.dataset.switchMode)));
+    document.querySelectorAll("[data-password-toggle]").forEach((control) => {
+      control.addEventListener("click", () => {
+        const field = control.closest(".password-field")?.querySelector("input");
+        if (!field) return;
+        const show = field.type === "password";
+        field.type = show ? "text" : "password";
+        control.setAttribute("aria-pressed", String(show));
+        control.setAttribute("aria-label", show ? "Ocultar senha" : "Mostrar senha");
+      });
+    });
 
     async function submitAuth(mode, form) {
       setMessage(mode === "forgot" ? "Preparando protocolo de recupera\u00e7\u00e3o..." : "Verificando acesso...");
       const data = Object.fromEntries(new FormData(form).entries());
+      if (mode === "claim" && data.password !== data.confirmPassword) {
+        setMessage("As senhas nÃ£o coincidem. Confirme a senha antes de ativar o acesso.");
+        return;
+      }
+      delete data.confirmPassword;
       const endpoint = mode === "forgot" ? "/api/auth/forgot-password" : "/api/auth/" + mode;
       const response = await fetch(endpoint, {
         method: "POST",
