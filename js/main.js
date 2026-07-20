@@ -4045,7 +4045,86 @@
     });
   }
 
+  function hasReadableProtectedBook(payload = {}) {
+    const entries = Array.isArray(payload?.books)
+      ? payload.books
+      : Array.isArray(payload)
+        ? payload
+        : [];
+
+    return entries.some((entry) => Boolean(entry?.canRead || entry?.status === "unlocked"));
+  }
+
+  async function readAuthenticatedPortalAccess() {
+    try {
+      const authResponse = await fetch("/api/auth/me", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      const authPayload = authResponse.ok ? await authResponse.json() : null;
+
+      if (!authPayload?.authenticated) {
+        return {
+          authenticated: false,
+          hasPortalAccess: false,
+          reason: "unauthenticated",
+        };
+      }
+
+      window.PSEU_AUTH_USER = authPayload.user || window.PSEU_AUTH_USER || null;
+
+      const booksResponse = await fetch("/api/books", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+
+      if (booksResponse.status === 401) {
+        return {
+          authenticated: false,
+          hasPortalAccess: false,
+          reason: "books_unauthorized",
+        };
+      }
+
+      if (!booksResponse.ok) {
+        return {
+          authenticated: true,
+          hasPortalAccess: false,
+          reason: `books_${booksResponse.status}`,
+        };
+      }
+
+      const booksPayload = await booksResponse.json();
+      const hasPortalAccess = hasReadableProtectedBook(booksPayload);
+
+      return {
+        authenticated: true,
+        hasPortalAccess,
+        reason: hasPortalAccess ? "access_granted" : "access_missing",
+      };
+    } catch (error) {
+      return {
+        authenticated: false,
+        hasPortalAccess: false,
+        reason: error?.message || "access_check_error",
+      };
+    }
+  }
+
   async function handleFinalCheckout() {
+    const portalAccess = await readAuthenticatedPortalAccess();
+
+    if (portalAccess.hasPortalAccess) {
+      trackAnalytics("final_cta_portal_access", {
+        section: "travessia",
+        page: "page-3",
+        funnelStage: 9,
+        reason: portalAccess.reason,
+      });
+      window.location.assign("/portal");
+      return;
+    }
+
     const config = await readCheckoutConfig();
 
     if (config.checkoutUrl) {
@@ -4069,6 +4148,8 @@
       page: "page-3",
       funnelStage: 9,
       devFallback: canUseDevFallback,
+      authenticated: portalAccess.authenticated,
+      accessReason: portalAccess.reason,
     });
 
     if (canUseDevFallback) return;
