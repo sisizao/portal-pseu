@@ -2,6 +2,11 @@ const { query } = require("../db/pool");
 const { normalizeEmail } = require("./user.service");
 
 const DEV_PRODUCT_ID = "PSEU_PORTAL_DEV_PRODUCT";
+const NON_ACTIVE_STATUSES = new Set(["refunded", "disputed", "cancelled", "revoked"]);
+
+function executeQuery(client, text, params) {
+  return client ? client.query(text, params) : query(text, params);
+}
 
 function readEventName(payload = {}) {
   return String(
@@ -23,14 +28,25 @@ function mapGumroadStatus(eventName) {
   return "active";
 }
 
+function canReactivateSale(eventName) {
+  return String(eventName || "").toLowerCase().includes("dispute_won");
+}
+
 function getProductId(payload = {}) {
-  return String(
-    payload.product_id
-    || payload.product_permalink
-    || payload.permalink
-    || payload.product_permalink_id
-    || ""
-  ).trim();
+  return getProductCandidates(payload)[0] || "";
+}
+
+function getProductCandidates(payload = {}) {
+  const values = [
+    payload.product_id,
+    payload.product_permalink,
+    payload.permalink,
+    payload.product_permalink_id,
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  return [...new Set(values)];
 }
 
 function getSaleId(payload = {}) {
@@ -46,13 +62,17 @@ function getBuyerEmail(payload = {}) {
   return normalizeEmail(payload.email || payload.purchaser_email || payload.buyer_email || "");
 }
 
-function isExpectedProduct(productId) {
+function isExpectedProduct(product) {
   const expected = process.env.GUMROAD_PRODUCT_ID;
+  const candidates = typeof product === "object"
+    ? getProductCandidates(product)
+    : [String(product || "").trim()].filter(Boolean);
+
   if (!expected && process.env.NODE_ENV !== "production") {
-    return String(productId || "") === DEV_PRODUCT_ID;
+    return candidates.includes(DEV_PRODUCT_ID);
   }
   if (!expected) return false;
-  return String(productId || "") === String(expected);
+  return candidates.includes(String(expected));
 }
 
 function verifyWebhookSecret(req) {
@@ -77,6 +97,8 @@ function verifyWebhookSecret(req) {
 async function verifySaleWithGumroad(payload) {
   const accessToken = process.env.GUMROAD_ACCESS_TOKEN;
   const saleId = getSaleId(payload);
+  const payloadEmail = getBuyerEmail(payload);
+  const payloadProductId = getProductId(payload);
 
   if (!accessToken) {
     console.warn("[PSEU GUMROAD] GUMROAD_ACCESS_TOKEN ausente. Validacao real da venda pendente.");
@@ -94,31 +116,69 @@ async function verifySaleWithGumroad(payload) {
   }
 
   const data = await response.json();
-  const sale = data.sale || data;
-  const verified = Boolean(data.success !== false && sale);
+  const sale = data.sale || data.purchase || data;
+  const saleIdFromApi = getSaleId(sale);
+  const emailFromApi = getBuyerEmail(sale);
+  const productCandidatesFromApi = getProductCandidates(sale);
+  const saleHasVerificationFields = Boolean(saleIdFromApi || emailFromApi || productCandidatesFromApi.length);
+  const saleMatchesWebhook = !saleIdFromApi || saleIdFromApi === saleId;
+  const emailMatchesWebhook = !emailFromApi || emailFromApi === payloadEmail;
+  const productMatchesWebhook = !productCandidatesFromApi.length
+    || productCandidatesFromApi.includes(payloadProductId)
+    || isExpectedProduct(sale);
+  const verified = Boolean(
+    data.success !== false
+    && sale
+    && saleHasVerificationFields
+    && saleMatchesWebhook
+    && emailMatchesWebhook
+    && productMatchesWebhook
+  );
 
   return {
     configured: true,
     verified,
+    skipped: false,
+    reason: verified ? undefined : saleHasVerificationFields ? "sale_mismatch" : "sale_missing_fields",
+    checks: {
+      fields: saleHasVerificationFields,
+      saleId: saleMatchesWebhook,
+      email: emailMatchesWebhook,
+      product: productMatchesWebhook,
+    },
     sale,
   };
 }
 
-async function upsertGumroadSale({ saleId, productId, email, status, payload }) {
+async function upsertGumroadSale({ saleId, productId, email, status, payload, eventName }, client) {
   const normalized = normalizeEmail(email);
+  const shouldReactivate = canReactivateSale(eventName || payload?.pseu_event_name);
 
-  const result = await query(
+  const result = await executeQuery(
+    client,
     `INSERT INTO gumroad_sales (sale_id, product_id, email, status, raw_payload)
      VALUES ($1, $2, $3, $4, $5::jsonb)
      ON CONFLICT (sale_id) DO UPDATE
      SET
        product_id = EXCLUDED.product_id,
        email = EXCLUDED.email,
-       status = EXCLUDED.status,
-       raw_payload = EXCLUDED.raw_payload,
+       status = CASE
+         WHEN gumroad_sales.status = ANY($6::text[])
+           AND EXCLUDED.status = 'active'
+           AND $7::boolean IS NOT TRUE
+         THEN gumroad_sales.status
+         ELSE EXCLUDED.status
+       END,
+       raw_payload = CASE
+         WHEN gumroad_sales.status = ANY($6::text[])
+           AND EXCLUDED.status = 'active'
+           AND $7::boolean IS NOT TRUE
+         THEN gumroad_sales.raw_payload
+         ELSE EXCLUDED.raw_payload
+       END,
        updated_at = NOW()
      RETURNING id, sale_id, product_id, email, status, created_at, updated_at`,
-    [saleId, productId, normalized, status, JSON.stringify(payload || {})]
+    [saleId, productId, normalized, status, JSON.stringify(payload || {}), [...NON_ACTIVE_STATUSES], shouldReactivate]
   );
 
   return result.rows[0];

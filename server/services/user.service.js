@@ -4,15 +4,20 @@ const { query } = require("../db/pool");
 
 const passwordResetTtlMs = 60 * 60 * 1000;
 
+function executeQuery(client, text, params) {
+  return client ? client.query(text, params) : query(text, params);
+}
+
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-async function findUserByEmail(email) {
+async function findUserByEmail(email, client) {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  const result = await query(
+  const result = await executeQuery(
+    client,
     "SELECT id, email, password_hash, status, created_at, last_login_at FROM users WHERE LOWER(email) = $1 LIMIT 1",
     [normalized]
   );
@@ -31,11 +36,12 @@ async function findUserById(userId) {
   return result.rows[0] || null;
 }
 
-async function hasActivePurchase(email) {
+async function hasActivePurchase(email, client) {
   const normalized = normalizeEmail(email);
   if (!normalized) return false;
 
-  const result = await query(
+  const result = await executeQuery(
+    client,
     `SELECT 1
      FROM gumroad_sales
      WHERE LOWER(email) = $1
@@ -47,10 +53,34 @@ async function hasActivePurchase(email) {
   return result.rowCount > 0;
 }
 
-async function createOrClaimUser(email, password) {
+async function createOrClaimUser(email, password, client) {
   const normalized = normalizeEmail(email);
   const passwordHash = await bcrypt.hash(String(password), 12);
-  const existing = await findUserByEmail(normalized);
+  const db = client || null;
+
+  const inserted = await executeQuery(
+    db,
+    `INSERT INTO users (email, password_hash, status)
+     VALUES ($1, $2, 'active')
+     ON CONFLICT (email) DO NOTHING
+     RETURNING id, email, status, created_at, last_login_at`,
+    [normalized, passwordHash]
+  );
+
+  if (inserted.rows[0]) {
+    return inserted.rows[0];
+  }
+
+  const existingResult = await executeQuery(
+    db,
+    `SELECT id, email, password_hash, status, created_at, last_login_at
+     FROM users
+     WHERE LOWER(email) = $1
+     LIMIT 1
+     ${db ? "FOR UPDATE" : ""}`,
+    [normalized]
+  );
+  const existing = existingResult.rows[0] || null;
 
   if (existing?.password_hash) {
     const error = new Error("access_already_claimed");
@@ -59,24 +89,24 @@ async function createOrClaimUser(email, password) {
   }
 
   if (existing) {
-    const result = await query(
+    const result = await executeQuery(
+      db,
       `UPDATE users
        SET password_hash = $2, status = 'active'
        WHERE id = $1
+         AND password_hash IS NULL
        RETURNING id, email, status, created_at, last_login_at`,
       [existing.id, passwordHash]
     );
-    return result.rows[0];
+
+    if (result.rows[0]) {
+      return result.rows[0];
+    }
   }
 
-  const result = await query(
-    `INSERT INTO users (email, password_hash, status)
-     VALUES ($1, $2, 'active')
-     RETURNING id, email, status, created_at, last_login_at`,
-    [normalized, passwordHash]
-  );
-
-  return result.rows[0];
+  const error = new Error("access_already_claimed");
+  error.code = "access_already_claimed";
+  throw error;
 }
 
 function createPasswordResetToken() {
@@ -238,25 +268,16 @@ async function clearExpiredPasswordResetTokens() {
   );
 }
 
-async function ensurePurchasedUser(email) {
+async function ensurePurchasedUser(email, client) {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  const existing = await findUserByEmail(normalized);
-  if (existing) {
-    const result = await query(
-      `UPDATE users
-       SET status = 'active'
-       WHERE id = $1
-       RETURNING id, email, status, created_at, last_login_at`,
-      [existing.id]
-    );
-    return result.rows[0];
-  }
-
-  const result = await query(
+  const result = await executeQuery(
+    client,
     `INSERT INTO users (email, password_hash, status)
      VALUES ($1, NULL, 'active')
+     ON CONFLICT (email) DO UPDATE
+     SET status = 'active'
      RETURNING id, email, status, created_at, last_login_at`,
     [normalized]
   );
@@ -264,14 +285,15 @@ async function ensurePurchasedUser(email) {
   return result.rows[0];
 }
 
-async function suspendUserIfNoActivePurchase(email) {
+async function suspendUserIfNoActivePurchase(email, client) {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  const stillActive = await hasActivePurchase(normalized);
+  const stillActive = await hasActivePurchase(normalized, client);
   if (stillActive) return null;
 
-  const result = await query(
+  const result = await executeQuery(
+    client,
     `UPDATE users
      SET status = 'suspended'
      WHERE LOWER(email) = $1

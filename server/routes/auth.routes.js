@@ -1,4 +1,5 @@
 const express = require("express");
+const { withTransaction } = require("../db/pool");
 const {
   clearExpiredPasswordResetTokens,
   createOrClaimUser,
@@ -14,7 +15,7 @@ const {
   verifyPassword,
 } = require("../services/user.service");
 const { ensureInitialEntitlements } = require("../services/entitlement.service");
-const { isSmtpConfigured, sendPasswordResetEmail } = require("../services/email.service");
+const { isResendConfigured, sendPasswordResetEmail } = require("../services/email.service");
 
 const router = express.Router();
 const sessionName = process.env.SESSION_NAME || "pseu.sid";
@@ -72,6 +73,32 @@ function logPasswordResetFailure(reason, details = {}) {
   }));
 }
 
+function logResetResult(result, email, startedAt, details = {}) {
+  console.info("[RESET]", compactLogDetails({
+    email: maskEmailForLog(email),
+    result,
+    durationMs: startedAt ? Date.now() - startedAt : undefined,
+    ...details,
+  }));
+}
+
+function logClaimResult(result, email, startedAt, details = {}) {
+  console.info("[CLAIM]", compactLogDetails({
+    email: maskEmailForLog(email),
+    result,
+    durationMs: startedAt ? Date.now() - startedAt : undefined,
+    ...details,
+  }));
+}
+
+function logEntitlementsResult(result, email, details = {}) {
+  console.info("[ENTITLEMENTS]", compactLogDetails({
+    email: maskEmailForLog(email),
+    result,
+    ...details,
+  }));
+}
+
 router.get("/me", async (req, res, next) => {
   try {
     if (!req.session?.userId) {
@@ -124,17 +151,24 @@ router.post("/logout", async (req, res, next) => {
 });
 
 router.post("/forgot-password", async (req, res, next) => {
+  const startedAt = Date.now();
+  let email = "";
+
   try {
     await clearExpiredPasswordResetTokens();
 
-    const email = normalizeEmail(req.body?.email);
-    const smtpReady = isSmtpConfigured();
-    const resetRequest = email.includes("@") && smtpReady
+    email = normalizeEmail(req.body?.email);
+    const emailValid = email.includes("@");
+    const resendReady = isResendConfigured();
+    const resetRequest = emailValid && resendReady
       ? await createPasswordResetRequest(email)
       : null;
 
-    if (email.includes("@") && !smtpReady) {
-      console.warn("[PSEU AUTH] SMTP nao configurado. Recuperacao de senha solicitada sem envio de e-mail.");
+    if (!emailValid) {
+      logResetResult("invalid_request", email, startedAt);
+    } else if (!resendReady) {
+      console.warn("[PSEU AUTH] Resend nao configurado. Recuperacao de senha solicitada sem envio de e-mail.");
+      logResetResult("email_skipped_not_configured", email, startedAt);
     }
 
     if (resetRequest) {
@@ -145,18 +179,31 @@ router.post("/forgot-password", async (req, res, next) => {
           resetUrl,
           expiresAt: resetRequest.expiresAt,
         });
+        logResetResult("email_sent", email, startedAt, {
+          expiresAt: resetRequest.expiresAt,
+        });
       } catch (err) {
         console.error("[PSEU AUTH] Falha ao enviar e-mail de recuperacao:", err);
+        logResetResult("email_send_failed", email, startedAt, {
+          reason: err.code || err.message || "resend_error",
+        });
       }
+    } else if (emailValid && resendReady) {
+      logResetResult("neutral_response", email, startedAt);
     }
 
     return res.json({ ok: true, message: passwordResetNeutralMessage });
   } catch (err) {
+    logResetResult("error", email, startedAt, {
+      reason: err.code || err.message || "internal_error",
+    });
     return next(err);
   }
 });
 
 router.post("/reset-password", async (req, res, next) => {
+  const startedAt = Date.now();
+
   try {
     await clearExpiredPasswordResetTokens();
 
@@ -196,6 +243,7 @@ router.post("/reset-password", async (req, res, next) => {
       return res.status(400).json({ error: "invalid_or_expired_token" });
     }
 
+    logResetResult("password_updated", user.email, startedAt);
     return res.json({ ok: true, user: publicUser(user) });
   } catch (err) {
     return next(err);
@@ -203,35 +251,65 @@ router.post("/reset-password", async (req, res, next) => {
 });
 
 router.post("/claim", async (req, res, next) => {
+  const startedAt = Date.now();
+  let email = "";
+
   try {
-    const email = normalizeEmail(req.body?.email);
+    email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
 
     if (!email || !email.includes("@")) {
+      logClaimResult("invalid_claim", email, startedAt);
       return res.status(400).json({ error: "invalid_claim" });
     }
 
     if (password.length < 8) {
+      logClaimResult("weak_password", email, startedAt);
       return res.status(400).json({ error: "weak_password" });
     }
 
-    const purchaseActive = await hasActivePurchase(email);
-    if (!purchaseActive) {
+    const claim = await withTransaction(async (client) => {
+      const purchaseActive = await hasActivePurchase(email, client);
+      if (!purchaseActive) {
+        const error = new Error("claim_not_available");
+        error.code = "claim_not_available";
+        throw error;
+      }
+
+      const user = await createOrClaimUser(email, password, client);
+      const entitlements = await ensureInitialEntitlements(user.id, "claim", client);
+
+      return {
+        user,
+        entitlements,
+      };
+    });
+
+    logEntitlementsResult("granted", email, {
+      count: claim.entitlements.length,
+      source: "claim",
+    });
+    await regenerateSession(req);
+    req.session.userId = claim.user.id;
+    req.session.email = claim.user.email;
+    await touchLastLogin(claim.user.id);
+    logClaimResult("success", email, startedAt, {
+      userId: claim.user.id,
+    });
+
+    return res.json({ ok: true, user: publicUser({ ...claim.user, last_login_at: new Date() }) });
+  } catch (err) {
+    if (err.code === "claim_not_available") {
+      logClaimResult("claim_not_available", email, startedAt);
       return res.status(403).json({ error: "claim_not_available" });
     }
-
-    const user = await createOrClaimUser(email, password);
-    await ensureInitialEntitlements(user.id, "claim");
-    await regenerateSession(req);
-    req.session.userId = user.id;
-    req.session.email = user.email;
-    await touchLastLogin(user.id);
-
-    return res.json({ ok: true, user: publicUser({ ...user, last_login_at: new Date() }) });
-  } catch (err) {
     if (err.code === "access_already_claimed") {
+      logClaimResult("access_already_claimed", email, startedAt);
       return res.status(409).json({ error: "access_already_claimed" });
     }
+    logClaimResult("error", email, startedAt, {
+      reason: err.code || err.message || "internal_error",
+    });
     return next(err);
   }
 });

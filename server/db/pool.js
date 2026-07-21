@@ -15,7 +15,31 @@ async function query(text, params) {
   return pool.query(text, params);
 }
 
+async function withTransaction(work) {
+  if (typeof work !== "function") {
+    throw new TypeError("withTransaction requires a callback function");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await work(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("[PSEU DB] Falha ao reverter transacao:", rollbackError);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   pool,
   query,
+  withTransaction,
 };

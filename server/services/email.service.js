@@ -32,6 +32,17 @@ function normalizeRecipients(to) {
     : [String(to || "").trim()].filter(Boolean);
 }
 
+function maskEmailForLog(email) {
+  const value = String(email || "").trim().toLowerCase();
+  if (!value.includes("@")) return undefined;
+  const [name, domain] = value.split("@");
+  return `${name.slice(0, 2)}${"*".repeat(Math.max(name.length - 2, 2))}@${domain}`;
+}
+
+function maskRecipientsForLog(recipients) {
+  return recipients.map(maskEmailForLog).filter(Boolean);
+}
+
 function serializeError(error) {
   if (!error) return error;
   return {
@@ -126,7 +137,7 @@ async function sendMail({ to, subject, text, html }) {
       error.response = responseBody;
       logResendError("api", error, {
         endpoint: RESEND_EMAILS_ENDPOINT,
-        to: recipients,
+        to: maskRecipientsForLog(recipients),
         from: config.from,
       });
       throw error;
@@ -137,7 +148,7 @@ async function sendMail({ to, subject, text, html }) {
     if (!String(error?.message || "").startsWith("resend_error:")) {
       logResendError("request", error, {
         endpoint: RESEND_EMAILS_ENDPOINT,
-        to: recipients,
+        to: maskRecipientsForLog(recipients),
         from: config.from,
       });
     }

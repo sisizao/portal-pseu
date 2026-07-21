@@ -1,6 +1,10 @@
 const { query } = require("../db/pool");
 const { listBookCatalog } = require("./book-catalog.service");
 
+function executeQuery(client, text, params) {
+  return client ? client.query(text, params) : query(text, params);
+}
+
 const CURRENT_RELEASE_BOOK_IDS = Object.freeze([
   "manual-do-despertar",
   "manual-do-lider-estoico",
@@ -37,11 +41,12 @@ async function hasBookAccess(userId, bookId) {
   return result.rowCount > 0;
 }
 
-async function ensureInitialEntitlements(userId, source = "claim") {
+async function ensureInitialEntitlements(userId, source = "claim", client) {
   const created = [];
 
   for (const bookId of listPortalEntitlementBookIds()) {
-    await query(
+    await executeQuery(
+      client,
       `INSERT INTO entitlements (user_id, book_id, status, source)
        VALUES ($1, $2, 'active', $3)
        ON CONFLICT (user_id, book_id) DO UPDATE
@@ -54,10 +59,11 @@ async function ensureInitialEntitlements(userId, source = "claim") {
   return created;
 }
 
-async function revokeInitialEntitlements(userId) {
+async function revokeInitialEntitlements(userId, client) {
   if (!userId) return [];
 
-  const result = await query(
+  const result = await executeQuery(
+    client,
     `UPDATE entitlements
      SET status = 'revoked'
      WHERE user_id = $1
