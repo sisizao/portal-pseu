@@ -13220,3 +13220,72 @@ body.is-reader-debug .reader-hud {
     max-width: 72px !important;
   }
 }
+
+/* Homologacao mobile: fechamento de largura do funil principal e Biblioteca. */
+@media (max-width: 760px) {
+  .preportal-page--call {
+    width: auto;
+    max-width: none;
+    margin: -18px -18px 0;
+    overflow-x: clip;
+  }
+
+  .preportal-page--call .call-official__scene {
+    width: 100%;
+    max-width: 100%;
+    justify-items: center;
+  }
+
+  .preportal-page--call .call-official__manifesto,
+  .preportal-page--call .preportal-call {
+    width: min(100%, 328px);
+    margin-inline: auto;
+    transform: none;
+  }
+
+  .preportal-page--library {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: clamp(8px, 3vw, 14px);
+  }
+
+  .preportal-page--library .editorial-threshold--library,
+  .preportal-page--library .editorial-breath--library,
+  .preportal-page--library .library-official__archive,
+  .preportal-page--library .library-fragment,
+  .preportal-page--library .library-key-final,
+  .preportal-page--library .library-manifesto {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .preportal-page--library .preportal-library-grid {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 8px;
+    margin-inline: auto;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .preportal-page--library .preportal-library-grid .library-tile__title,
+  .preportal-page--library .preportal-library-grid .library-tile__mood,
+  .preportal-page--library .preportal-library-grid .library-tile__description,
+  .preportal-page--library .preportal-library-grid .library-tile__status {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 380px) {
+  .preportal-page--library .preportal-library-grid {
+    gap: 10px 7px;
+  }
+}
