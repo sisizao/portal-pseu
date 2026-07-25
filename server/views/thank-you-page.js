@@ -205,6 +205,14 @@ function renderThankYouPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
       box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
     }
 
+    .button--secondary {
+      background:
+        linear-gradient(90deg, rgba(18, 14, 10, 0.94), rgba(38, 28, 16, 0.86)),
+        rgba(215, 173, 98, 0.08);
+      border-color: rgba(215, 173, 98, 0.42);
+      color: var(--text);
+    }
+
     .button:hover,
     .button:focus-visible {
       outline: none;
@@ -247,30 +255,31 @@ function renderThankYouPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
     <section class="panel" aria-label="Acesso reconhecido">
       <div>
         <span class="eyebrow">Portal PSEU</span>
-        <h1>Acesso reconhecido.</h1>
-        <h2>Seu acesso ao Portal PSEU foi reconhecido.</h2>
+        <h1>Compra confirmada.</h1>
+        <h2>Seu acesso esta sendo preparado pelo Centro de Operacoes PSEU.</h2>
       </div>
 
       <div class="content">
         <div class="message">
-          <p>Utilize o mesmo e-mail de liberação para criar sua conta.</p>
-          <p>O sistema reconhece seu acesso atrav&eacute;s desse e-mail.</p>
-          <p>Se voc&ecirc; utilizar outro e-mail, o acesso poder&aacute; n&atilde;o ser localizado automaticamente.</p>
+          <p>O e-mail utilizado na compra sera usado para acessar o Portal.</p>
+          <p>Use esse mesmo e-mail no Primeiro Acesso para criar sua senha.</p>
+          <p>Se voc&ecirc; j&aacute; possui cadastro e n&atilde;o lembra a senha, utilize a redefini&ccedil;&atilde;o de senha.</p>
         </div>
 
         <aside class="found">
-          <strong>O que voc&ecirc; encontrar&aacute;</strong>
+          <strong>Verifique sua mensagem</strong>
           <ul>
-            <li>Biblioteca interna</li>
-            <li>Arquivos protegidos</li>
-            <li>Leitura reservada</li>
-            <li>Conte&uacute;do em expans&atilde;o</li>
+            <li>Caixa de Entrada</li>
+            <li>Spam</li>
+            <li>Promo&ccedil;&otilde;es</li>
+            <li>Lixo Eletr&ocirc;nico</li>
           </ul>
         </aside>
       </div>
 
       <div class="actions">
-        <a class="button" href="/acesso">Criar conta / Acessar Portal</a>
+        <a class="button" href="/acesso">ACESSAR O PORTAL</a>
+        <a class="button button--secondary" href="/acesso?mode=forgot">REDEFINIR SENHA</a>
         <span class="support">Suporte: ${supportEmail}</span>
       </div>
     </section>

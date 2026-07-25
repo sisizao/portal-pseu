@@ -169,13 +169,15 @@ async function upsertGumroadSale({ saleId, productId, email, status, payload, ev
          THEN gumroad_sales.status
          ELSE EXCLUDED.status
        END,
-       raw_payload = CASE
-         WHEN gumroad_sales.status = ANY($6::text[])
-           AND EXCLUDED.status = 'active'
-           AND $7::boolean IS NOT TRUE
-         THEN gumroad_sales.raw_payload
-         ELSE EXCLUDED.raw_payload
-       END,
+      raw_payload = CASE
+        WHEN gumroad_sales.status = ANY($6::text[])
+          AND EXCLUDED.status = 'active'
+          AND $7::boolean IS NOT TRUE
+        THEN gumroad_sales.raw_payload
+        WHEN gumroad_sales.raw_payload ? 'pseu_access_email'
+        THEN EXCLUDED.raw_payload || jsonb_build_object('pseu_access_email', gumroad_sales.raw_payload->'pseu_access_email')
+        ELSE EXCLUDED.raw_payload
+      END,
        updated_at = NOW()
      RETURNING id, sale_id, product_id, email, status, created_at, updated_at`,
     [saleId, productId, normalized, status, JSON.stringify(payload || {}), [...NON_ACTIVE_STATUSES], shouldReactivate]
@@ -184,11 +186,82 @@ async function upsertGumroadSale({ saleId, productId, email, status, payload, ev
   return result.rows[0];
 }
 
+async function claimPurchaseAccessEmail(saleId, client) {
+  const normalizedSaleId = String(saleId || "").trim();
+  if (!normalizedSaleId) return false;
+
+  const result = await executeQuery(
+    client,
+    `UPDATE gumroad_sales
+     SET raw_payload = jsonb_set(
+           COALESCE(raw_payload, '{}'::jsonb),
+           '{pseu_access_email}',
+           $2::jsonb,
+           true
+         ),
+         updated_at = NOW()
+     WHERE sale_id = $1
+       AND COALESCE(raw_payload->'pseu_access_email'->>'status', 'pending') IN ('pending', 'failed')
+     RETURNING sale_id`,
+    [normalizedSaleId, JSON.stringify({ status: "sending", claimed_at: new Date().toISOString() })]
+  );
+
+  return result.rowCount > 0;
+}
+
+async function markPurchaseAccessEmailSent(saleId, client) {
+  const normalizedSaleId = String(saleId || "").trim();
+  if (!normalizedSaleId) return null;
+
+  const result = await executeQuery(
+    client,
+    `UPDATE gumroad_sales
+     SET raw_payload = jsonb_set(
+           COALESCE(raw_payload, '{}'::jsonb),
+           '{pseu_access_email}',
+           $2::jsonb,
+           true
+         ),
+         updated_at = NOW()
+     WHERE sale_id = $1
+     RETURNING sale_id`,
+    [normalizedSaleId, JSON.stringify({ status: "sent", sent_at: new Date().toISOString() })]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function markPurchaseAccessEmailFailed(saleId, reason, client) {
+  const normalizedSaleId = String(saleId || "").trim();
+  if (!normalizedSaleId) return null;
+
+  const safeReason = String(reason || "email_error").slice(0, 120);
+  const result = await executeQuery(
+    client,
+    `UPDATE gumroad_sales
+     SET raw_payload = jsonb_set(
+           COALESCE(raw_payload, '{}'::jsonb),
+           '{pseu_access_email}',
+           $2::jsonb,
+           true
+         ),
+         updated_at = NOW()
+     WHERE sale_id = $1
+     RETURNING sale_id`,
+    [normalizedSaleId, JSON.stringify({ status: "failed", failed_at: new Date().toISOString(), reason: safeReason })]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
+  claimPurchaseAccessEmail,
   getBuyerEmail,
   getProductId,
   getSaleId,
   isExpectedProduct,
+  markPurchaseAccessEmailFailed,
+  markPurchaseAccessEmailSent,
   mapGumroadStatus,
   readEventName,
   upsertGumroadSale,

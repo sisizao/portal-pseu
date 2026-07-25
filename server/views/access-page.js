@@ -1018,6 +1018,9 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
 
     tabs.forEach((tab) => tab.addEventListener("click", () => setMode(tab.dataset.mode)));
     modeSwitches.forEach((control) => control.addEventListener("click", () => setMode(control.dataset.switchMode)));
+    if (["claim", "login", "forgot"].includes(params.get("mode"))) {
+      setMode(params.get("mode"));
+    }
     document.querySelectorAll("[data-password-toggle]").forEach((control) => {
       control.addEventListener("click", () => {
         const field = control.closest(".password-field")?.querySelector("input");

@@ -1,10 +1,13 @@
 const express = require("express");
 const { withTransaction } = require("../db/pool");
 const {
+  claimPurchaseAccessEmail,
   getBuyerEmail,
   getProductId,
   getSaleId,
   isExpectedProduct,
+  markPurchaseAccessEmailFailed,
+  markPurchaseAccessEmailSent,
   mapGumroadStatus,
   readEventName,
   upsertGumroadSale,
@@ -21,6 +24,10 @@ const {
   ensureInitialEntitlements,
   revokeInitialEntitlements,
 } = require("../services/entitlement.service");
+const {
+  isResendConfigured,
+  sendPurchaseAccessEmail,
+} = require("../services/email.service");
 
 const router = express.Router();
 
@@ -59,6 +66,15 @@ function logEntitlementsResult(result, details = {}) {
     email: maskEmailForLog(details.email),
     count: details.count,
     source: details.source,
+  }));
+}
+
+function logPurchaseEmailResult(result, details = {}) {
+  console.info("[WEBHOOK]", compactLogDetails({
+    result,
+    saleId: details.saleId,
+    email: maskEmailForLog(details.email),
+    reason: details.reason,
   }));
 }
 
@@ -128,6 +144,7 @@ router.post("/gumroad", async (req, res, next) => {
 
         return {
           sale,
+          user,
           action: "access_granted",
           entitlements,
           stillHasActivePurchase: true,
@@ -144,6 +161,7 @@ router.post("/gumroad", async (req, res, next) => {
 
       return {
         sale,
+        user,
         action: stillHasActivePurchase ? "sale_status_updated" : "access_revoked_or_suspended",
         entitlements: [],
         stillHasActivePurchase,
@@ -167,6 +185,72 @@ router.post("/gumroad", async (req, res, next) => {
         action: result.action,
         startedAt,
       });
+
+      if (isResendConfigured()) {
+        const shouldSendAccessEmail = await claimPurchaseAccessEmail(result.sale.sale_id);
+
+        if (!shouldSendAccessEmail) {
+          logPurchaseEmailResult("access_email_skipped", {
+            saleId: result.sale.sale_id,
+            email: result.sale.email,
+            reason: "already_claimed_or_sent",
+          });
+
+          return res.status(202).json({
+            ok: true,
+            action: result.action,
+            saleId: result.sale.sale_id,
+            email: result.sale.email,
+            entitlements: result.entitlements,
+            verification: {
+              configured: verification.configured,
+              verified: verification.verified,
+              skipped: verification.skipped,
+            },
+          });
+        }
+
+        try {
+          await sendPurchaseAccessEmail({
+            to: result.sale.email,
+            hasPassword: Boolean(result.user?.has_password),
+          });
+          try {
+            await markPurchaseAccessEmailSent(result.sale.sale_id);
+          } catch (err) {
+            logPurchaseEmailResult("access_email_state_failed", {
+              saleId: result.sale.sale_id,
+              email: result.sale.email,
+              reason: err.code || err.message || "state_update_error",
+            });
+          }
+          logPurchaseEmailResult("access_email_sent", {
+            saleId: result.sale.sale_id,
+            email: result.sale.email,
+          });
+        } catch (err) {
+          try {
+            await markPurchaseAccessEmailFailed(result.sale.sale_id, err.code || err.message || "email_error");
+          } catch (stateErr) {
+            logPurchaseEmailResult("access_email_state_failed", {
+              saleId: result.sale.sale_id,
+              email: result.sale.email,
+              reason: stateErr.code || stateErr.message || "state_update_error",
+            });
+          }
+          logPurchaseEmailResult("access_email_failed", {
+            saleId: result.sale.sale_id,
+            email: result.sale.email,
+            reason: err.code || err.message || "email_error",
+          });
+        }
+      } else {
+        logPurchaseEmailResult("access_email_skipped", {
+          saleId: result.sale.sale_id,
+          email: result.sale.email,
+          reason: "resend_not_configured",
+        });
+      }
 
       return res.status(202).json({
         ok: true,

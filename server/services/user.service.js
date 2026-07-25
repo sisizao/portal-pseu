@@ -278,7 +278,7 @@ async function ensurePurchasedUser(email, client) {
      VALUES ($1, NULL, 'active')
      ON CONFLICT (email) DO UPDATE
      SET status = 'active'
-     RETURNING id, email, status, created_at, last_login_at`,
+     RETURNING id, email, status, password_hash IS NOT NULL AS has_password, created_at, last_login_at`,
     [normalized]
   );
 
