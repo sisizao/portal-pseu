@@ -20,7 +20,7 @@ router.get("/", requireAuth, async (req, res, next) => {
   }
 });
 
-router.get("/:bookId/pdf", requireAuth, async (req, res, next) => {
+async function sendProtectedPdf(req, res, next, documentId) {
   try {
     const { bookId } = req.params;
     const book = findBook(bookId);
@@ -36,7 +36,7 @@ router.get("/:bookId/pdf", requireAuth, async (req, res, next) => {
 
     let pdf = null;
     try {
-      pdf = await assertProtectedPdfExists(bookId);
+      pdf = await assertProtectedPdfExists(bookId, documentId);
     } catch (error) {
       if (error?.code === "ENOENT") {
         return res.status(404).json({ error: "pdf_not_found" });
@@ -58,6 +58,14 @@ router.get("/:bookId/pdf", requireAuth, async (req, res, next) => {
   } catch (err) {
     return next(err);
   }
+}
+
+router.get("/:bookId/pdf", requireAuth, async (req, res, next) => {
+  return sendProtectedPdf(req, res, next);
+});
+
+router.get("/:bookId/documents/:documentId/pdf", requireAuth, async (req, res, next) => {
+  return sendProtectedPdf(req, res, next, req.params.documentId);
 });
 
 module.exports = router;

@@ -528,7 +528,7 @@
         </button>
         <button class="nav-item" type="button" data-notebook-open>
           <span>Estação 04</span>
-          <strong>Caderno</strong>
+          <strong>Materiais</strong>
         </button>
       </nav>
 
@@ -807,24 +807,43 @@
     </main>
   </div>
 
-  <button class="notebook-access" type="button" data-notebook-open aria-label="Abrir Caderno de Travessia">
+  <button class="notebook-access" type="button" data-notebook-open aria-label="Abrir materiais e anotações">
     <span aria-hidden="true">⌁</span>
-    <strong>Caderno</strong>
+    <strong>Materiais</strong>
   </button>
 
   <aside class="traversal-notebook" data-traversal-notebook role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="traversal-notebook-title" hidden>
-    <button class="traversal-notebook__backdrop" type="button" data-notebook-close aria-label="Fechar Caderno de Travessia" tabindex="-1"></button>
+    <button class="traversal-notebook__backdrop" type="button" data-notebook-close aria-label="Fechar materiais e anotações" tabindex="-1"></button>
     <section class="traversal-notebook__panel">
       <header class="traversal-notebook__header">
         <div>
-          <span>Caderno de Travessia</span>
-          <h2 id="traversal-notebook-title">Registro de campo</h2>
+          <span>Experiência de leitura</span>
+          <h2 id="traversal-notebook-title">Materiais e anotações</h2>
         </div>
-        <button class="traversal-notebook__close" type="button" data-notebook-close aria-label="Fechar Caderno de Travessia">×</button>
+        <button class="traversal-notebook__close" type="button" data-notebook-close aria-label="Fechar materiais e anotações">×</button>
       </header>
 
+      <div class="traversal-notebook__intro" data-notebook-intro hidden>
+        <span>Antes de começar</span>
+        <strong>Este é o acompanhamento prático do Manual do Despertar.</strong>
+        <p>Use o Caderno de Travessia para aplicar a leitura. Você poderá alternar entre ele e o Manual a qualquer momento, sem perder a página em nenhum dos dois.</p>
+      </div>
+
+      <div class="traversal-notebook__documents" data-notebook-documents aria-label="Materiais de leitura">
+        <button type="button" data-reader-document="manual">
+          <span>Leitura principal</span>
+          <strong>Manual do Despertar</strong>
+          <small><b data-document-page="manual">p. 01</b><i data-document-progress="manual">0%</i></small>
+        </button>
+        <button type="button" data-reader-document="caderno-de-travessia">
+          <span>Material complementar</span>
+          <strong>Caderno de Travessia</strong>
+          <small><b data-document-page="caderno-de-travessia">p. 01</b><i data-document-progress="caderno-de-travessia">0%</i></small>
+        </button>
+      </div>
+
       <div class="traversal-notebook__context">
-        <span>Arquivo observado</span>
+        <span>Anotações do arquivo</span>
         <strong data-notebook-book-title>Manual do Despertar</strong>
         <small data-notebook-meta>Aguardando primeiro sinal.</small>
         <div class="traversal-notebook__location" aria-label="Localização do registro">
@@ -840,12 +859,12 @@
       </div>
 
       <label class="traversal-notebook__field">
-        <span>Observação do Operador</span>
+        <span>Anotações do Operador</span>
         <textarea data-notebook-text rows="12" spellcheck="true" placeholder="Registre aqui o que a travessia revelou neste arquivo."></textarea>
       </label>
 
       <footer class="traversal-notebook__footer">
-        <span data-notebook-status>O Caderno permanece em silêncio.</span>
+        <span data-notebook-status>As anotações permanecem em silêncio.</span>
         <strong data-notebook-save-state>Salvo</strong>
         <button type="button" data-notebook-page>Marcar página atual</button>
       </footer>

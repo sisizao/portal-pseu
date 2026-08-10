@@ -1,4 +1,8 @@
-const { getProtectedPdfDescriptor } = require("./pdf.service");
+const {
+  PRIMARY_PROTECTED_DOCUMENT_ID,
+  getProtectedPdfDescriptor,
+  listProtectedPdfDocuments,
+} = require("./pdf.service");
 
 const BOOK_CATALOG = [
   { bookId: "manual-do-despertar", title: "Manual do Despertar" },
@@ -36,6 +40,18 @@ function mergeCatalogWithEntitlements(entitlements) {
     const entitlement = entitlementMap.get(book.bookId);
     const hasMappedPdf = Boolean(getProtectedPdfDescriptor(book.bookId));
     const canRead = Boolean(entitlement?.status === "active" && hasMappedPdf);
+    const documents = listProtectedPdfDocuments(book.bookId)
+      .filter((document) => document.documentId !== PRIMARY_PROTECTED_DOCUMENT_ID)
+      .map((document) => ({
+        documentId: document.documentId,
+        title: document.title,
+        subtitle: document.subtitle || "",
+        pageCount: document.pageCount || null,
+        canRead,
+        pdfEndpoint: canRead
+          ? `/api/books/${encodeURIComponent(book.bookId)}/documents/${encodeURIComponent(document.documentId)}/pdf`
+          : null,
+      }));
 
     return {
       bookId: book.bookId,
@@ -44,6 +60,7 @@ function mergeCatalogWithEntitlements(entitlements) {
       source: entitlement?.source || null,
       canRead,
       pdfEndpoint: canRead ? `/api/books/${encodeURIComponent(book.bookId)}/pdf` : null,
+      documents,
     };
   });
 }

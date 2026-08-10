@@ -1300,6 +1300,8 @@ body.is-protected-portal .app-shell {
 
 body.is-reader-open.is-portal-unlocked .notebook-access {
   display: inline-flex;
+  top: auto;
+  bottom: 18px;
 }
 
 body.is-notebook-open .notebook-access {
@@ -1354,8 +1356,10 @@ body.is-notebook-open {
     rgba(3, 3, 5, 0.96);
   box-shadow: -28px 0 80px rgba(0, 0, 0, 0.42), inset 1px 0 0 rgba(255, 255, 255, 0.035);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: none;
+  align-content: start;
   gap: 18px;
+  overflow-y: auto;
   transform: translateX(100%);
   transition: transform 0.28s ease;
   pointer-events: auto;
@@ -1389,6 +1393,102 @@ body.is-notebook-open {
   font-size: clamp(1.35rem, 3vw, 1.85rem);
   font-weight: 650;
   line-height: 1.05;
+}
+
+.traversal-notebook__intro {
+  padding: 15px 16px;
+  border: 1px solid rgba(65, 215, 199, 0.22);
+  background:
+    linear-gradient(115deg, rgba(65, 215, 199, 0.08), transparent 58%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.traversal-notebook__intro[hidden],
+.traversal-notebook__documents[hidden] {
+  display: none;
+}
+
+.traversal-notebook__intro span {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(65, 215, 199, 0.76);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.traversal-notebook__intro strong {
+  display: block;
+  color: rgba(246, 241, 229, 0.94);
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.traversal-notebook__intro p {
+  margin: 8px 0 0;
+  color: rgba(236, 228, 211, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.traversal-notebook__documents {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.traversal-notebook__documents button {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(211, 167, 90, 0.16);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(243, 240, 231, 0.78);
+  text-align: left;
+  display: grid;
+  gap: 5px;
+}
+
+.traversal-notebook__documents button.is-active {
+  border-color: rgba(241, 209, 132, 0.5);
+  background:
+    linear-gradient(135deg, rgba(211, 167, 90, 0.14), transparent 70%),
+    rgba(0, 0, 0, 0.28);
+  box-shadow: inset 2px 0 0 rgba(241, 209, 132, 0.62);
+}
+
+.traversal-notebook__documents button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.traversal-notebook__documents button > span {
+  color: rgba(241, 209, 132, 0.56);
+  font-size: 0.58rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.traversal-notebook__documents button > strong {
+  overflow: hidden;
+  color: rgba(246, 241, 229, 0.92);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.traversal-notebook__documents button > small {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(236, 228, 211, 0.5);
+  font-size: 0.66rem;
+}
+
+.traversal-notebook__documents b,
+.traversal-notebook__documents i {
+  font-style: normal;
+  font-weight: 650;
 }
 
 .traversal-notebook__close {
@@ -1582,6 +1682,10 @@ body.is-notebook-open {
     padding: 22px 18px;
     border-left: 0;
     border-top: 1px solid rgba(211, 167, 90, 0.22);
+  }
+
+  .traversal-notebook__documents {
+    grid-template-columns: 1fr;
   }
 
   .traversal-notebook__footer {
@@ -10280,10 +10384,21 @@ body.is-reader-debug .reader-hud {
   }
 
   body.is-reader-open.is-portal-unlocked .notebook-access {
+    display: inline-flex;
+    top: auto;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  body.is-reader-open.is-portal-unlocked.is-notebook-open .notebook-access {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(18px);
   }
 
   .reader-layout {
@@ -11405,8 +11520,9 @@ body.is-reader-debug .reader-hud {
   }
 
   .reader-hud {
-    opacity: 0.58;
+    opacity: 0;
     transform: translateY(-4px) scale(0.98);
+    pointer-events: none;
   }
 
   .reader-layout.is-controls-visible .reader-hud,
@@ -11414,6 +11530,7 @@ body.is-reader-debug .reader-hud {
   .reader-hud:hover {
     opacity: 0.96;
     transform: translateY(0) scale(1);
+    pointer-events: auto;
   }
 
   .reader-hud__panel {

@@ -12,6 +12,7 @@
     activeChapterIndex: 0,
     activePage: 1,
     resumePage: 1,
+    activeDocumentId: "manual",
     readerMode: "cover",
     search: "",
     renderToken: 0,
@@ -103,6 +104,25 @@
   const FUNNEL_SESSION_STORAGE_KEY = "pseu.portal.funnelSession.v1";
   const FUNNEL_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
   const TRAVERSAL_NOTEBOOK_STORAGE_KEY = "pseu.portal.traversalNotebook.v1";
+  const PRIMARY_READER_DOCUMENT_ID = "manual";
+  const TRAVERSAL_COMPANION_DOCUMENT_ID = "caderno-de-travessia";
+  const TRAVERSAL_COMPANION_BOOK_ID = "despertar";
+  const TRAVERSAL_COMPANION_PAGE_COUNT = 56;
+  const TRAVERSAL_COMPANION_CHAPTERS = [
+    { range: "P. 01–03", title: "Entrada", state: "Preparação", page: 1 },
+    { range: "P. 04–05", title: "Método da leitura ativa", state: "Método", page: 4 },
+    { range: "P. 06–09", title: "Ponto de partida", state: "Registro", page: 6 },
+    { range: "P. 10–29", title: "Grandes temas", state: "Aplicação", page: 10 },
+    { range: "P. 30–36", title: "Diário da Travessia", state: "Prática", page: 30 },
+    { range: "P. 37–44", title: "Desafio de 7 dias", state: "Ação", page: 37 },
+    { range: "P. 45–53", title: "Plano de 30 dias", state: "Continuidade", page: 45 },
+    { range: "P. 54–56", title: "Selo final", state: "Fecho", page: 54 },
+  ];
+  const TRAVERSAL_COMPANION_PAGE_STOPS = TRAVERSAL_COMPANION_CHAPTERS.map((chapter) => ({
+    page: chapter.page,
+    label: String(chapter.page).padStart(2, "0"),
+    title: chapter.title,
+  }));
   const FUNNEL_PROGRESS_SAVE_MS = 3500;
   const LIBRARY_TILE_REVEALED_CLASS = "library-tile--revealed";
   const FRAGMENT_BOOK_ID = "despertar";
@@ -349,6 +369,11 @@
     notebookStatus: document.querySelector("[data-notebook-status]"),
     notebookSaveState: document.querySelector("[data-notebook-save-state]"),
     notebookPageButton: document.querySelector("[data-notebook-page]"),
+    notebookIntro: document.querySelector("[data-notebook-intro]"),
+    notebookDocuments: document.querySelector("[data-notebook-documents]"),
+    notebookDocumentButtons: document.querySelectorAll("[data-reader-document]"),
+    notebookDocumentPages: document.querySelectorAll("[data-document-page]"),
+    notebookDocumentProgress: document.querySelectorAll("[data-document-progress]"),
   };
 
   const saved = readSavedState();
@@ -357,6 +382,7 @@
     state.activeChapterIndex = clamp(saved.activeChapterIndex, 0, 99);
     state.activePage = clamp(saved.activePage, 1, books[state.activeIndex]?.pageCount || 999);
     state.resumePage = clamp(saved.resumePage || saved.activePage || 1, 1, books[state.activeIndex]?.pageCount || 999);
+    state.activeDocumentId = saved.activeDocumentId || saved.bookStates?.[books[state.activeIndex]?.id]?.activeDocumentId || PRIMARY_READER_DOCUMENT_ID;
     state.lastBookId = saved.lastBookId || books[state.activeIndex]?.id || "";
     state.bookStates = saved.bookStates || {};
     state.favoriteBooks = Array.isArray(saved.favoriteBooks) ? saved.favoriteBooks : [];
@@ -533,6 +559,9 @@
     els.fragmentNext?.addEventListener("click", () => navigateFragmentEcho(1));
     els.notebookOpenButtons.forEach((button) => button.addEventListener("click", () => openTraversalNotebook()));
     els.notebookCloseButtons.forEach((button) => button.addEventListener("click", closeTraversalNotebook));
+    els.notebookDocumentButtons.forEach((button) => {
+      button.addEventListener("click", () => switchReaderDocument(button.dataset.readerDocument));
+    });
     els.notebookText?.addEventListener("input", handleTraversalNotebookInput);
     els.notebookPageButton?.addEventListener("click", markTraversalNotebookPage);
     els.recordsBookFilter?.addEventListener("change", () => {
@@ -690,7 +719,7 @@
       if (event.key === "End") {
         event.preventDefault();
         const book = getCurrentBook();
-        selectPage(book.pageCount || state.activePage);
+        selectPage(getActiveReaderBook(book).pageCount || state.activePage);
       }
 
       if (event.key === "Escape") {
@@ -711,7 +740,11 @@
         const page = Number(observerButton.dataset.observerPage);
         const book = books[index];
         if (!book || !isBookReadable(book)) return;
-        selectBook(index, { open: false, trackHistory: true });
+        selectBook(index, {
+          open: false,
+          trackHistory: true,
+          documentId: PRIMARY_READER_DOCUMENT_ID,
+        });
         selectPage(page);
         openReader();
         return;
@@ -729,7 +762,9 @@
           return;
         }
         if (bookButton.getAttribute("aria-disabled") === "true") return;
-        selectBook(Number(bookButton.dataset.bookIndex));
+        selectBook(Number(bookButton.dataset.bookIndex), {
+          documentId: bookButton.dataset.readerDocumentId || undefined,
+        });
         return;
       }
 
@@ -785,6 +820,117 @@
     });
   }
 
+  function normalizeReaderDocumentId(book, documentId) {
+    if (!book || isFragmentReaderScope(book) || book.id !== TRAVERSAL_COMPANION_BOOK_ID) {
+      return PRIMARY_READER_DOCUMENT_ID;
+    }
+    return documentId === TRAVERSAL_COMPANION_DOCUMENT_ID
+      ? TRAVERSAL_COMPANION_DOCUMENT_ID
+      : PRIMARY_READER_DOCUMENT_ID;
+  }
+
+  function getReaderDocumentDescriptor(book, documentId = state.activeDocumentId) {
+    if (!book) return null;
+    const normalizedId = normalizeReaderDocumentId(book, documentId);
+    if (normalizedId === PRIMARY_READER_DOCUMENT_ID) {
+      return {
+        ...book,
+        documentId: PRIMARY_READER_DOCUMENT_ID,
+        documentTitle: book.title,
+      };
+    }
+
+    const companion = book.readerDocuments?.[TRAVERSAL_COMPANION_DOCUMENT_ID] || {};
+    return {
+      ...book,
+      documentId: TRAVERSAL_COMPANION_DOCUMENT_ID,
+      documentTitle: companion.title || "Caderno de Travessia",
+      title: companion.title || "Caderno de Travessia",
+      readerSubtitle: companion.subtitle || "Material Complementar de Aplicação do Manual do Despertar",
+      pageCount: Number(companion.pageCount || TRAVERSAL_COMPANION_PAGE_COUNT),
+      chapters: TRAVERSAL_COMPANION_CHAPTERS,
+      pageStops: TRAVERSAL_COMPANION_PAGE_STOPS,
+      pdfEndpoint: companion.pdfEndpoint || "",
+      canRead: Boolean(book.canRead && companion.canRead && companion.pdfEndpoint),
+      readerRenderMode: "pdf",
+      pageAssets: [],
+      visuals: [],
+      isCompanionDocument: true,
+    };
+  }
+
+  function getActiveReaderBook(book = getCurrentBook()) {
+    return getReaderDocumentDescriptor(book, state.activeDocumentId);
+  }
+
+  function isTraversalCompanionAvailable(book) {
+    const companion = book?.readerDocuments?.[TRAVERSAL_COMPANION_DOCUMENT_ID];
+    return Boolean(
+      book?.id === TRAVERSAL_COMPANION_BOOK_ID
+      && isProtectedPortalRoute()
+      && book.canRead
+      && companion?.canRead
+      && companion?.pdfEndpoint
+    );
+  }
+
+  function getReaderDocumentState(book, documentId = PRIMARY_READER_DOCUMENT_ID) {
+    const bookState = state.bookStates?.[book?.id] || {};
+    const documentState = bookState.documents?.[documentId] || {};
+    if (documentId === PRIMARY_READER_DOCUMENT_ID) {
+      return {
+        page: documentState.page ?? bookState.page ?? book?.lastPage ?? 1,
+        chapterIndex: documentState.chapterIndex ?? bookState.chapterIndex ?? 0,
+        progress: documentState.progress ?? bookState.progress ?? 0,
+      };
+    }
+    return {
+      page: documentState.page ?? 1,
+      chapterIndex: documentState.chapterIndex ?? 0,
+      progress: documentState.progress ?? 0,
+    };
+  }
+
+  function getReaderDocumentSavedPage(book, documentId = PRIMARY_READER_DOCUMENT_ID) {
+    const readerBook = getReaderDocumentDescriptor(book, documentId);
+    const savedPage = Number(getReaderDocumentState(book, documentId).page || 1);
+    return clamp(Number.isFinite(savedPage) ? savedPage : 1, 1, readerBook?.pageCount || 999);
+  }
+
+  function getReaderDocumentProgress(book, page = state.activePage, documentId = state.activeDocumentId) {
+    return getBookProgress(getReaderDocumentDescriptor(book, documentId), page);
+  }
+
+  function persistReaderDocumentState(book, page = state.activePage) {
+    if (!book?.id || isFragmentReaderScope(book)) return;
+    const documentId = normalizeReaderDocumentId(book, state.activeDocumentId);
+    const readerBook = getReaderDocumentDescriptor(book, documentId);
+    const bookState = state.bookStates[book.id] || {};
+    const documents = bookState.documents && typeof bookState.documents === "object"
+      ? { ...bookState.documents }
+      : {};
+    const chapterIndex = chapterIndexForPage(readerBook, page);
+    const progress = getBookProgress(readerBook, page);
+
+    documents[documentId] = {
+      ...(documents[documentId] || {}),
+      page,
+      chapterIndex,
+      progress,
+    };
+
+    state.bookStates[book.id] = {
+      ...bookState,
+      activeDocumentId: documentId,
+      documents,
+      ...(documentId === PRIMARY_READER_DOCUMENT_ID ? {
+        page,
+        chapterIndex,
+        progress,
+      } : {}),
+    };
+  }
+
   function selectBook(index, options = {}) {
     const book = books[index];
     if (!book) return;
@@ -795,33 +941,34 @@
       state.readerScope = null;
     }
 
-    state.activeIndex = index;
-    state.activePage = options.preservePage ? normalizeReaderPage(state.activePage, book) : 1;
-    state.activeChapterIndex = chapterIndexForPage(book, state.activePage);
-    state.resumePage = options.preservePage ? state.activePage : clamp(book.lastPage || 1, 1, book.pageCount || 999);
     const fragmentScope = isFragmentReaderScope(book);
-    state.readerMode = readerModeFor(book, state.activePage);
+    const storedBookState = state.bookStates[book.id] || {};
+    const preservePage = options.preservePage !== false;
+    const requestedDocumentId = fragmentScope
+      ? PRIMARY_READER_DOCUMENT_ID
+      : options.documentId || (preservePage ? storedBookState.activeDocumentId : PRIMARY_READER_DOCUMENT_ID);
+
+    state.activeIndex = index;
+    state.activeDocumentId = normalizeReaderDocumentId(book, requestedDocumentId);
+    const readerBook = getActiveReaderBook(book);
+    const savedPage = getReaderDocumentSavedPage(book, state.activeDocumentId);
+    state.activePage = preservePage ? normalizeReaderPage(savedPage, readerBook) : 1;
+    state.activeChapterIndex = chapterIndexForPage(readerBook, state.activePage);
+    state.resumePage = state.activePage;
+    state.readerMode = readerModeFor(readerBook, state.activePage);
     if (!fragmentScope) {
       state.lastBookId = book.id;
     }
-    const storedBookState = state.bookStates[book.id] || {};
-    if (!fragmentScope && (options.preservePage || !Number.isFinite(Number(storedBookState.page)))) {
-      state.bookStates[book.id] = {
-        ...storedBookState,
-        page: state.activePage,
-        chapterIndex: state.activeChapterIndex,
-        progress: getBookProgress(book, state.activePage),
-      };
-    }
+    if (!fragmentScope) persistReaderDocumentState(book, state.activePage);
     state.readerError = "";
     delete els.body.dataset.readerError;
     els.readerDebug?.classList.remove("is-visible");
 
     document.body.dataset.theme = book.stage || "awakening";
     updateHero(book);
-    renderChapterList(book);
+    renderChapterList(readerBook);
     renderImageRail(book);
-    renderPageStrip(book);
+    renderPageStrip(readerBook);
     updateLibrarySelection();
     updateActPills(book.act);
     updateProgressBadge(book);
@@ -846,33 +993,30 @@
 
   function selectChapter(index) {
     const book = getCurrentBook();
-    if (!book?.chapters?.length) return;
-    state.activeChapterIndex = wrap(index, book.chapters.length);
-    selectPage(book.chapters[state.activeChapterIndex].page);
+    const readerBook = getActiveReaderBook(book);
+    if (!readerBook?.chapters?.length) return;
+    state.activeChapterIndex = wrap(index, readerBook.chapters.length);
+    selectPage(readerBook.chapters[state.activeChapterIndex].page);
   }
 
   function selectPage(pageNumber) {
     const book = getCurrentBook();
     if (!book) return;
+    const readerBook = getActiveReaderBook(book);
 
     const previousPage = state.activePage;
-    const targetPage = normalizeReaderPage(pageNumber, book);
+    const targetPage = normalizeReaderPage(pageNumber, readerBook);
     syncFragmentEchoForPage(targetPage, book);
     state.turnDirection = targetPage >= state.activePage ? "forward" : "backward";
     state.activePage = targetPage;
     state.resumePage = targetPage;
-    book.lastPage = targetPage;
-    state.activeChapterIndex = chapterIndexForPage(book, state.activePage);
+    if (state.activeDocumentId === PRIMARY_READER_DOCUMENT_ID) book.lastPage = targetPage;
+    state.activeChapterIndex = chapterIndexForPage(readerBook, state.activePage);
     const fragmentScope = isFragmentReaderScope(book);
-    state.readerMode = readerModeFor(book, state.activePage);
+    state.readerMode = readerModeFor(readerBook, state.activePage);
     if (!fragmentScope) {
       state.lastBookId = book.id;
-      state.bookStates[book.id] = {
-        ...(state.bookStates[book.id] || {}),
-        page: state.activePage,
-        chapterIndex: state.activeChapterIndex,
-        progress: getBookProgress(book, state.activePage),
-      };
+      persistReaderDocumentState(book, state.activePage);
     }
     updateReader(book);
     updateChapterSelection();
@@ -889,11 +1033,12 @@
         section: "reader",
         page: `reader-page-${targetPage}`,
         bookId: book.id,
-        progress: getBookProgress(book, targetPage),
+        progress: getReaderDocumentProgress(book, targetPage),
         details: {
           fromPage: previousPage,
           toPage: targetPage,
           direction: state.turnDirection,
+          documentId: state.activeDocumentId,
         },
       });
     }
@@ -946,6 +1091,9 @@
   }
 
   function updateReader(book) {
+    const catalogBook = book;
+    book = getActiveReaderBook(book);
+    if (!book) return;
     const maxPage = book.pageCount || Math.max(book.chapters?.at(-1)?.page || state.activePage, state.activePage);
     const fragmentScope = isFragmentReaderScope(book);
     state.readerMode = readerModeFor(book, state.activePage);
@@ -962,6 +1110,7 @@
     pdfDebug("CHECK", `updateReader`, `${book.id} | page ${state.activePage} | mode ${spread.mode} | source=${readerSourceModeFor(book)}`);
 
     els.body.dataset.readerBook = book.id || "";
+    els.body.dataset.readerDocument = book.documentId || PRIMARY_READER_DOCUMENT_ID;
     els.body.dataset.pageMood = spread.leftMood.key;
     els.body.dataset.loading = "true";
     state.readerError = "";
@@ -971,6 +1120,7 @@
     if (els.readerLayout) {
       els.readerLayout.dataset.mood = spread.leftMood.key;
       els.readerLayout.dataset.book = book.id || "";
+      els.readerLayout.dataset.document = book.documentId || PRIMARY_READER_DOCUMENT_ID;
       els.readerLayout.dataset.mode = spread.mode;
       els.readerLayout.style.setProperty("--reader-ambient-left-a", spread.leftAtmosphere.a);
       els.readerLayout.style.setProperty("--reader-ambient-left-b", spread.leftAtmosphere.b);
@@ -1027,7 +1177,7 @@
       els.readerControls.dataset.visible = state.controlsVisible ? "true" : "false";
     }
     updateReaderDebugPanel(book, spread, null);
-    updateProgressBadge(book);
+    updateProgressBadge(catalogBook);
     updateReaderActions(book);
     refreshLibraryTiles();
 
@@ -1135,9 +1285,13 @@
 
     if (els.lastActivityTitle && els.lastActivityCopy) {
       if (latestActivity) {
-        const progress = getBookProgress(latestActivity.book, latestActivity.page);
+        const readerBook = getReaderDocumentDescriptor(
+          latestActivity.book,
+          latestActivity.documentId || PRIMARY_READER_DOCUMENT_ID,
+        );
+        const progress = getBookProgress(readerBook, latestActivity.page);
         els.lastActivityTitle.textContent = progress > 0 ? `${progress}%` : "Entrada";
-        els.lastActivityCopy.textContent = `${latestActivity.book.title} · p. ${padPage(latestActivity.page || 1)} · ${formatTraversalNotebookDate(latestActivity.timestamp) || "agora"}`;
+        els.lastActivityCopy.textContent = `${readerBook.title} · p. ${padPage(latestActivity.page || 1)} · ${formatTraversalNotebookDate(latestActivity.timestamp) || "agora"}`;
       } else {
         els.lastActivityTitle.textContent = "Aguardando";
         els.lastActivityCopy.textContent = book ? `${book.title} ainda não abriu um sinal.` : "entrada interna estabilizada";
@@ -1157,14 +1311,19 @@
 
   function touchLastOpenedBook(book, page) {
     if (!book?.id) return;
+    const readerBook = getActiveReaderBook(book);
     const entry = {
       bookId: book.id,
+      documentId: state.activeDocumentId,
+      documentTitle: readerBook.title,
       page: Number(page || 1),
-      progress: getBookProgress(book, page),
+      progress: getBookProgress(readerBook, page),
       timestamp: Date.now(),
     };
     state.lastOpenedAt = entry.timestamp;
-    state.lastOpenedBooks = [entry, ...(state.lastOpenedBooks || []).filter((item) => item?.bookId !== book.id)].slice(0, 8);
+    state.lastOpenedBooks = [entry, ...(state.lastOpenedBooks || []).filter((item) => (
+      item?.bookId !== book.id || (item?.documentId || PRIMARY_READER_DOCUMENT_ID) !== state.activeDocumentId
+    ))].slice(0, 8);
     renderPortalMemory();
     renderDashboardSignals(book);
   }
@@ -1192,13 +1351,15 @@
     els.recentAccessList.innerHTML = "";
     recent.forEach((entry) => {
       const index = books.indexOf(entry.book);
-      const progress = getBookProgress(entry.book, entry.page);
+      const readerBook = getReaderDocumentDescriptor(entry.book, entry.documentId || PRIMARY_READER_DOCUMENT_ID);
+      const progress = getBookProgress(readerBook, entry.page);
       const button = document.createElement("button");
       button.type = "button";
       button.className = "recent-access";
       button.dataset.bookIndex = String(index);
       button.dataset.bookId = entry.book.id;
-      button.setAttribute("aria-label", `Retomar ${entry.book.title}`);
+      button.dataset.readerDocumentId = readerBook.documentId;
+      button.setAttribute("aria-label", `Retomar ${readerBook.title}`);
 
       const number = document.createElement("span");
       number.className = "recent-access__number";
@@ -1207,7 +1368,7 @@
       const copy = document.createElement("span");
       copy.className = "recent-access__copy";
       const title = document.createElement("strong");
-      title.textContent = entry.book.title;
+      title.textContent = readerBook.title;
       const meta = document.createElement("small");
       meta.textContent = progress > 0 ? `${progress}% preservado` : "entrada registrada";
       copy.append(title, meta);
@@ -2491,12 +2652,16 @@
   function getProtectedPdfEndpoint(book) {
     if (!book || isFragmentReaderScope(book)) return "";
     if (!isProtectedPortalRoute()) return "";
-    if (!state.protectedBooks.loaded || !book.canRead) return "";
+    const readerBook = book.documentId ? book : getActiveReaderBook(book);
+    if (!state.protectedBooks.loaded || !readerBook?.canRead) return "";
 
-    const backendBookId = book.backendBookId || LOCAL_BOOK_ID_TO_BACKEND[book.id];
+    const backendBookId = readerBook.backendBookId || LOCAL_BOOK_ID_TO_BACKEND[readerBook.id];
     if (!backendBookId) return "";
 
-    return book.pdfEndpoint || `/api/books/${encodeURIComponent(backendBookId)}/pdf`;
+    if (readerBook.documentId === TRAVERSAL_COMPANION_DOCUMENT_ID) {
+      return readerBook.pdfEndpoint || "";
+    }
+    return readerBook.pdfEndpoint || `/api/books/${encodeURIComponent(backendBookId)}/pdf`;
   }
 
   function scheduleReaderLoadFallback(frame, book, page, pageUrl) {
@@ -4320,6 +4485,7 @@
         source: entry.source || null,
         canRead: Boolean(entry.canRead),
         pdfEndpoint: entry.pdfEndpoint || null,
+        documents: Array.isArray(entry.documents) ? entry.documents : [],
         provisioning: entry.provisioning || {},
       };
     });
@@ -4336,7 +4502,9 @@
     renderOperations();
     updateContinuityUi();
     if (els.readerLayout?.classList.contains("is-open")) {
-      updateReader(getCurrentBook());
+      if (!presentTraversalCompanionOnFirstOpen(getCurrentBook())) {
+        updateReader(getCurrentBook());
+      }
     }
   }
 
@@ -4352,6 +4520,17 @@
     book.entitlementSource = entitlement?.source || null;
     book.canRead = canRead;
     book.pdfEndpoint = canRead ? entitlement?.pdfEndpoint || `/api/books/${encodeURIComponent(backendBookId)}/pdf` : "";
+    book.readerDocuments = Object.fromEntries(
+      (entitlement?.documents || []).map((document) => [document.documentId, {
+        documentId: document.documentId,
+        title: document.title || "",
+        subtitle: document.subtitle || "",
+        pageCount: Number(document.pageCount || 0) || null,
+        canRead: Boolean(document.canRead && document.pdfEndpoint),
+        pdfEndpoint: document.pdfEndpoint || "",
+        provisioning: document.provisioning || {},
+      }]),
+    );
     book.privatePdfProvisioning = entitlement?.provisioning?.privatePdf || book.privatePdfProvisioning || null;
     book.provisioning = {
       ...(book.provisioning || {}),
@@ -5211,10 +5390,20 @@
   }
 
   function getTraversalNotebookLocation(book, page = null) {
-    const resolvedPage = clamp(Number(page || state.activePage || getBookSavedPage(book) || 1), 1, book?.pageCount || 999);
+    const documentId = book?.id === getCurrentBook()?.id
+      ? state.activeDocumentId
+      : PRIMARY_READER_DOCUMENT_ID;
+    const readerBook = getReaderDocumentDescriptor(book, documentId);
+    const resolvedPage = clamp(
+      Number(page || state.activePage || getReaderDocumentSavedPage(book, documentId) || 1),
+      1,
+      readerBook?.pageCount || 999,
+    );
     return {
       page: resolvedPage,
-      chapterTitle: getTraversalRecordChapter(book, resolvedPage),
+      chapterTitle: chapterForPage(readerBook, resolvedPage)?.title || getTraversalRecordChapter(book, resolvedPage),
+      documentId,
+      documentTitle: readerBook?.title || book?.title || "Arquivo",
     };
   }
 
@@ -5240,7 +5429,7 @@
     if (!text) {
       els.notebookStatus.textContent = mode === "saving"
         ? "Preparando o primeiro sinal."
-        : "O Caderno permanece em silêncio.";
+        : "As anotações permanecem em silêncio.";
       return;
     }
 
@@ -5261,24 +5450,115 @@
     state.traversalNotebook.activeBookId = book.id;
     const entry = getTraversalNotebookEntry(book);
     const savedPage = Number(entry?.page || 0);
-    const currentPage = clamp(state.activePage || getBookSavedPage(book) || 1, 1, book.pageCount || 999);
+    const readerBook = book.id === getCurrentBook()?.id
+      ? getActiveReaderBook(book)
+      : getReaderDocumentDescriptor(book, PRIMARY_READER_DOCUMENT_ID);
+    const currentPage = clamp(
+      state.activePage || getReaderDocumentSavedPage(book, readerBook.documentId) || 1,
+      1,
+      readerBook.pageCount || 999,
+    );
     const location = getTraversalNotebookLocation(book, savedPage || currentPage);
 
     if (els.notebookBookTitle) els.notebookBookTitle.textContent = book.title;
     if (els.notebookMeta) {
       els.notebookMeta.textContent = savedPage
-        ? `Sinal marcado na página ${savedPage}. Página ativa: ${currentPage}.`
-        : `Página ativa: ${currentPage}. Ponto de campo ainda em silêncio neste arquivo.`;
+        ? `Sinal marcado em ${entry.documentTitle || book.title}, página ${savedPage}. Página ativa: ${currentPage}.`
+        : `Página ativa em ${readerBook.title}: ${currentPage}. Ponto de campo ainda em silêncio.`;
     }
     if (els.notebookChapter) els.notebookChapter.textContent = entry.chapterTitle || location.chapterTitle;
     if (els.notebookPageLabel) els.notebookPageLabel.textContent = padPage(savedPage || currentPage);
     if (els.notebookText && els.notebookText.value !== (entry?.text || "")) {
       els.notebookText.value = entry?.text || "";
     }
+    renderReaderDocumentChoices(book);
     updateTraversalNotebookStatus(entry);
   }
 
-  function openTraversalNotebook() {
+  function renderReaderDocumentChoices(book) {
+    if (!els.notebookDocuments) return;
+    const supportsCompanion = book?.id === TRAVERSAL_COMPANION_BOOK_ID;
+    els.notebookDocuments.hidden = !supportsCompanion;
+    if (!supportsCompanion) return;
+
+    els.notebookDocumentButtons.forEach((button) => {
+      const documentId = button.dataset.readerDocument || PRIMARY_READER_DOCUMENT_ID;
+      const available = documentId === PRIMARY_READER_DOCUMENT_ID || isTraversalCompanionAvailable(book);
+      const active = documentId === state.activeDocumentId;
+      button.disabled = !available;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+      if (!available) button.title = "Material protegido ainda não disponível.";
+      else button.removeAttribute("title");
+    });
+
+    els.notebookDocumentPages.forEach((node) => {
+      const documentId = node.dataset.documentPage || PRIMARY_READER_DOCUMENT_ID;
+      node.textContent = `p. ${padPage(getReaderDocumentSavedPage(book, documentId))}`;
+    });
+    els.notebookDocumentProgress.forEach((node) => {
+      const documentId = node.dataset.documentProgress || PRIMARY_READER_DOCUMENT_ID;
+      const page = getReaderDocumentSavedPage(book, documentId);
+      node.textContent = `${getReaderDocumentProgress(book, page, documentId)}%`;
+    });
+  }
+
+  function switchReaderDocument(documentId, options = {}) {
+    const book = getCurrentBook();
+    if (!book || isFragmentReaderScope(book)) return false;
+    const readerWasOpen = isReaderOpen();
+    const targetDocumentId = normalizeReaderDocumentId(book, documentId);
+    if (targetDocumentId === TRAVERSAL_COMPANION_DOCUMENT_ID && !isTraversalCompanionAvailable(book)) {
+      return false;
+    }
+
+    flushTraversalNotebookSave();
+    persistReaderDocumentState(book, state.activePage);
+    state.activeDocumentId = targetDocumentId;
+    const readerBook = getActiveReaderBook(book);
+    state.activePage = normalizeReaderPage(getReaderDocumentSavedPage(book, targetDocumentId), readerBook);
+    state.resumePage = state.activePage;
+    state.activeChapterIndex = chapterIndexForPage(readerBook, state.activePage);
+    state.readerMode = readerModeFor(readerBook, state.activePage);
+    persistReaderDocumentState(book, state.activePage);
+    renderChapterList(readerBook);
+    renderPageStrip(readerBook);
+    updateChapterSelection();
+    updatePageSelection();
+    if (readerWasOpen) updateReader(book);
+    else if (options.openReader !== false) openReader();
+    renderTraversalNotebook();
+    touchLastOpenedBook(book, state.activePage);
+    saveState();
+    trackAnalytics("reader_document_changed", {
+      section: "reader",
+      page: `reader-page-${state.activePage}`,
+      bookId: book.id,
+      details: { documentId: targetDocumentId },
+    });
+
+    if (options.closeDrawer !== false && isTraversalNotebookOpen()) {
+      closeTraversalNotebook();
+    }
+    return true;
+  }
+
+  function presentTraversalCompanionOnFirstOpen(book) {
+    if (!isReaderOpen() || !isTraversalCompanionAvailable(book)) return false;
+    const bookState = state.bookStates?.[book.id] || {};
+    if (bookState.companionIntroduced) return false;
+
+    state.bookStates[book.id] = {
+      ...bookState,
+      companionIntroduced: true,
+    };
+    switchReaderDocument(TRAVERSAL_COMPANION_DOCUMENT_ID, { closeDrawer: false });
+    saveState();
+    window.requestAnimationFrame(() => openTraversalNotebook({ intro: true }));
+    return true;
+  }
+
+  function openTraversalNotebook(options = {}) {
     if (!els.notebookDrawer) return;
     const book = getCurrentBook();
     if (book?.id && !isFragmentReaderScope(book)) {
@@ -5286,13 +5566,17 @@
     }
 
     closeMobileDrawer();
+    if (els.notebookIntro) els.notebookIntro.hidden = !options.intro;
+    els.notebookDrawer.classList.toggle("is-intro", Boolean(options.intro));
     renderTraversalNotebook();
     els.notebookDrawer.hidden = false;
     els.notebookDrawer.setAttribute("aria-hidden", "false");
     els.body.classList.add("is-notebook-open");
     window.requestAnimationFrame(() => {
       els.notebookDrawer?.classList.add("is-open");
-      els.notebookText?.focus?.({ preventScroll: true });
+      const activeDocumentButton = Array.from(els.notebookDocumentButtons)
+        .find((button) => button.getAttribute("aria-pressed") === "true" && !button.disabled);
+      (activeDocumentButton || els.notebookText)?.focus?.({ preventScroll: true });
     });
   }
 
@@ -5300,6 +5584,8 @@
     if (!els.notebookDrawer) return;
     flushTraversalNotebookSave();
     els.notebookDrawer.classList.remove("is-open");
+    els.notebookDrawer.classList.remove("is-intro");
+    if (els.notebookIntro) els.notebookIntro.hidden = true;
     els.notebookDrawer.setAttribute("aria-hidden", "true");
     els.body.classList.remove("is-notebook-open");
     window.setTimeout(() => {
@@ -5335,6 +5621,8 @@
       const location = getTraversalNotebookLocation(book);
       entry.page = location.page;
       entry.chapterTitle = location.chapterTitle;
+      entry.documentId = location.documentId;
+      entry.documentTitle = location.documentTitle;
     }
     scheduleTraversalNotebookSave(entry);
   }
@@ -5356,6 +5644,8 @@
       const location = getTraversalNotebookLocation(book);
       entry.page = location.page;
       entry.chapterTitle = location.chapterTitle;
+      entry.documentId = location.documentId;
+      entry.documentTitle = location.documentTitle;
     }
     if (!entry.chapterTitle) {
       entry.chapterTitle = getTraversalRecordChapter(book, entry.page);
@@ -5377,6 +5667,8 @@
     const location = getTraversalNotebookLocation(book);
     entry.page = location.page;
     entry.chapterTitle = location.chapterTitle;
+    entry.documentId = location.documentId;
+    entry.documentTitle = location.documentTitle;
     entry.updatedAt = new Date().toISOString();
     traversalNotebookHasPendingSave = false;
     window.clearTimeout(traversalNotebookSaveTimer);
@@ -5416,16 +5708,20 @@
       hideReaderControls();
     }
     if (book) {
+      const companionPresented = !fragmentScope && presentTraversalCompanionOnFirstOpen(book);
       if (!wasOpen) {
         trackAnalytics("book_opened", {
           section: "reader",
           page: `reader-page-${state.activePage}`,
           bookId: book.id,
-          progress: getBookProgress(book, state.activePage),
+          progress: getReaderDocumentProgress(book, state.activePage),
+          details: { documentId: state.activeDocumentId },
         });
       }
-      const rerender = () => updateReader(book);
-      window.requestAnimationFrame(() => window.requestAnimationFrame(rerender));
+      if (!companionPresented) {
+        const rerender = () => updateReader(book);
+        window.requestAnimationFrame(() => window.requestAnimationFrame(rerender));
+      }
     }
   }
 
@@ -5442,7 +5738,10 @@
     });
     const hasHistory = Boolean(
       (state.lastOpenedBooks || []).length
-      || Object.values(state.bookStates || {}).some((item) => Number(item?.page || 0) > 1)
+      || Object.values(state.bookStates || {}).some((item) => (
+        Number(item?.page || 0) > 1
+        || Object.values(item?.documents || {}).some((document) => Number(document?.page || 0) > 1)
+      ))
     );
     if (!hasHistory) {
       const firstReadableIndex = books.findIndex(isBookReadable);
@@ -5457,24 +5756,11 @@
     if (!resumeBook) return;
 
     const resumeIndex = Math.max(0, books.findIndex((book) => book.id === resumeBook.id));
-    const savedBookState = state.bookStates?.[resumeBook.id];
-    const targetPage = clamp(savedBookState?.page || state.resumePage || state.activePage || 1, 1, resumeBook.pageCount || 999);
-
-    selectBook(resumeIndex >= 0 ? resumeIndex : 0, { open: false, preservePage: false, trackHistory: false });
-    state.activePage = targetPage;
-    state.resumePage = targetPage;
-    state.activeChapterIndex = chapterIndexForPage(resumeBook, targetPage);
-    state.readerMode = targetPage === 1 ? "cover" : isCompactReader() ? "single" : "spread";
-    state.bookStates[resumeBook.id] = {
-      ...(state.bookStates[resumeBook.id] || {}),
-      page: targetPage,
-      chapterIndex: state.activeChapterIndex,
-      progress: getBookProgress(resumeBook, targetPage),
-    };
-    touchLastOpenedBook(resumeBook, targetPage);
-    updateChapterSelection();
-    updatePageSelection();
-    saveState();
+    selectBook(resumeIndex >= 0 ? resumeIndex : 0, {
+      open: false,
+      preservePage: true,
+      trackHistory: false,
+    });
     openReader();
   }
 
@@ -5504,7 +5790,8 @@
         section: "reader",
         page: `reader-page-${state.activePage}`,
         bookId: book?.id,
-        progress: book ? getBookProgress(book, state.activePage) : 0,
+        progress: book ? getReaderDocumentProgress(book, state.activePage) : 0,
+        details: { documentId: state.activeDocumentId },
       });
     }
     updateContinuityUi();
@@ -5729,6 +6016,7 @@
         activeChapterIndex: state.activeChapterIndex,
         activePage: state.activePage,
         resumePage: state.resumePage,
+        activeDocumentId: state.activeDocumentId,
         lastBookId: state.lastBookId,
         bookStates: state.bookStates,
         favoriteBooks: state.favoriteBooks,
@@ -5740,7 +6028,8 @@
       localStorage.setItem("pseu.reader.state", JSON.stringify(payload));
       window.PSEU_BOOK_DIAGNOSTICS?.markSave?.(currentBook, {
         activePage: state.activePage,
-        progress: currentBook ? getBookProgress(currentBook, state.activePage) : 0,
+        activeDocumentId: state.activeDocumentId,
+        progress: currentBook ? getReaderDocumentProgress(currentBook, state.activePage) : 0,
       });
     } catch {}
   }
@@ -5752,6 +6041,9 @@
       const parsed = JSON.parse(raw);
       return {
         ...parsed,
+        activeDocumentId: typeof parsed.activeDocumentId === "string"
+          ? parsed.activeDocumentId
+          : PRIMARY_READER_DOCUMENT_ID,
         favoriteBooks: Array.isArray(parsed.favoriteBooks) ? parsed.favoriteBooks : [],
         bookmarks: parsed.bookmarks && typeof parsed.bookmarks === "object" ? parsed.bookmarks : {},
         lastOpenedBooks: Array.isArray(parsed.lastOpenedBooks) ? parsed.lastOpenedBooks : [],

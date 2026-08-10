@@ -77,14 +77,53 @@ async function getPrivatePdfProvisioning(book) {
   };
 }
 
-async function attachContentProvisioning(books = []) {
-  return Promise.all(books.map(async (book) => ({
-    ...book,
+async function attachProtectedDocumentProvisioning(document, bookId) {
+  const descriptor = getProtectedPdfDescriptor(bookId, document.documentId);
+  if (!descriptor) {
+    return {
+      ...document,
+      canRead: false,
+      pdfEndpoint: null,
+      provisioning: {
+        configured: false,
+        available: false,
+        source: "",
+        reason: "pdf_not_mapped",
+      },
+    };
+  }
+
+  const available = await assetExists(descriptor.absolutePath);
+
+  return {
+    ...document,
+    canRead: Boolean(document.canRead && available),
+    pdfEndpoint: available ? document.pdfEndpoint : null,
     provisioning: {
-      ...(book.provisioning || {}),
-      privatePdf: await getPrivatePdfProvisioning(book),
+      configured: true,
+      available,
+      source: available ? document.pdfEndpoint || "" : "",
+      fileName: descriptor.fileName,
+      reason: available ? null : "pdf_not_provisioned",
     },
-  })));
+  };
+}
+
+async function attachContentProvisioning(books = []) {
+  return Promise.all(books.map(async (book) => {
+    const documents = await Promise.all(
+      (book.documents || []).map((document) => attachProtectedDocumentProvisioning(document, book.bookId)),
+    );
+
+    return {
+      ...book,
+      documents,
+      provisioning: {
+        ...(book.provisioning || {}),
+        privatePdf: await getPrivatePdfProvisioning(book),
+      },
+    };
+  }));
 }
 
 module.exports = {
