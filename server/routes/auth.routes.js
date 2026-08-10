@@ -16,6 +16,7 @@ const {
 } = require("../services/user.service");
 const { ensureInitialEntitlements } = require("../services/entitlement.service");
 const { isResendConfigured, sendPasswordResetEmail } = require("../services/email.service");
+const { associateBehavioralSessionAfterAuth } = require("../services/telemetry-link.service");
 
 const router = express.Router();
 const sessionName = process.env.SESSION_NAME || "pseu.sid";
@@ -130,6 +131,7 @@ router.post("/login", async (req, res, next) => {
     req.session.userId = user.id;
     req.session.email = user.email;
     await touchLastLogin(user.id);
+    await associateBehavioralSessionAfterAuth(req, user.id);
 
     return res.json({ ok: true, user: publicUser({ ...user, last_login_at: new Date() }) });
   } catch (err) {
@@ -293,6 +295,7 @@ router.post("/claim", async (req, res, next) => {
     req.session.userId = claim.user.id;
     req.session.email = claim.user.email;
     await touchLastLogin(claim.user.id);
+    await associateBehavioralSessionAfterAuth(req, claim.user.id);
     logClaimResult("success", email, startedAt, {
       userId: claim.user.id,
     });

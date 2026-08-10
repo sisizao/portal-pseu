@@ -60,6 +60,13 @@
     return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  function trackCentral(method, ...args) {
+    try {
+      const attempt = window.PSEU_TELEMETRY?.[method]?.(...args);
+      if (attempt?.catch) attempt.catch(() => {});
+    } catch (_error) {}
+  }
+
   function stageFor(id) {
     return FUNNEL_STAGES.find((stage) => stage.id === Number(id)) || FUNNEL_STAGES[0];
   }
@@ -206,6 +213,8 @@
         completed: false,
         abandoned: false,
         maxProgress: 0,
+        centralStarted: false,
+        centralMilestones: new Set(),
       });
     }
     return memory.videoStates.get(videoId);
@@ -239,6 +248,10 @@
     state.maxProgress = Math.max(state.maxProgress, progress);
     MILESTONES.forEach((milestone) => {
       if (progress < milestone) return;
+      if (!state.centralMilestones.has(milestone)) {
+        state.centralMilestones.add(milestone);
+        trackCentral("trackVslProgress", state.videoId, milestone);
+      }
       trackOnce(
         videoEventName(state.videoId, milestone === 100 ? "completed" : `progress_${milestone}`),
         {
@@ -279,6 +292,10 @@
       markVideoAbandonments("switched-video", state.videoId);
       state.started = true;
       state.abandoned = false;
+      if (!state.centralStarted) {
+        state.centralStarted = true;
+        trackCentral("trackVslStarted", state.videoId);
+      }
       trackOnce(
         videoEventName(state.videoId, "started"),
         {
@@ -308,6 +325,10 @@
     video.addEventListener("ended", () => {
       state.maxProgress = 100;
       state.completed = true;
+      if (!state.centralMilestones.has(100)) {
+        state.centralMilestones.add(100);
+        trackCentral("trackVslProgress", state.videoId, 100);
+      }
       trackOnce(
         videoEventName(state.videoId, "completed"),
         {
@@ -378,12 +399,18 @@
 
     const nav = event.target?.closest?.("[data-nav]");
     if (nav?.dataset?.nav === "funil-biblioteca") {
+      trackCentral("trackCtaClicked", "cta_chamado_biblioteca", "section");
       track("funnel_library_cta_clicked", {
         section: "chamado",
         page: "page-1",
       });
     }
     if (nav?.dataset?.nav === "funil-travessia") {
+      trackCentral(
+        "trackCtaClicked",
+        nav.closest?.("#funil-biblioteca") ? "cta_biblioteca_travessia" : "cta_chamado_travessia",
+        "section"
+      );
       track("funnel_travessia_cta_clicked", {
         section: nav.closest?.("#funil-biblioteca") ? "biblioteca" : "chamado",
         page: nav.closest?.("#funil-biblioteca") ? "page-2" : "page-1",
@@ -392,6 +419,11 @@
 
     const action = event.target?.closest?.("[data-action]");
     if (action?.dataset?.action === "unlock-portal" || action?.dataset?.action === "checkout-gumroad") {
+      trackCentral(
+        "trackCtaClicked",
+        action.dataset.action === "checkout-gumroad" ? "cta_travessia_checkout" : "cta_travessia_portal",
+        action.dataset.action === "checkout-gumroad" ? "checkout" : "portal"
+      );
       markVideoAbandonments("final-cta");
       track("final_cta_clicked", {
         section: "travessia",
@@ -422,6 +454,7 @@
     if (memory.portalBound || !isPortalPage()) return;
     memory.portalBound = true;
     ensureSession();
+    trackCentral("trackFunnelStarted");
     trackOnce("funnel_call_entered", {
       section: "chamado",
       page: "page-1",

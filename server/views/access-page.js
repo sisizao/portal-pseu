@@ -997,6 +997,7 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
     </section>
   </main>
 
+  <script src="/js/telemetry.js"></script>
   <script>
     const tabs = document.querySelectorAll(".tab[data-mode]");
     const modeSwitches = document.querySelectorAll("[data-switch-mode]");
@@ -1041,9 +1042,16 @@ function renderAccessPage({ supportEmail = "pseu.oficial@gmail.com" } = {}) {
       }
       delete data.confirmPassword;
       const endpoint = mode === "forgot" ? "/api/auth/forgot-password" : "/api/auth/" + mode;
+      const headers = { "Content-Type": "application/json" };
+      const behavioralSessionId = mode === "forgot"
+        ? null
+        : window.PSEU_TELEMETRY?.getBehavioralSessionId?.();
+      if (behavioralSessionId) {
+        headers["X-PSEU-Behavioral-Session"] = behavioralSessionId;
+      }
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify(data),
       });

@@ -108,6 +108,7 @@
   const TRAVERSAL_COMPANION_DOCUMENT_ID = "caderno-de-travessia";
   const TRAVERSAL_COMPANION_BOOK_ID = "despertar";
   const TRAVERSAL_COMPANION_PAGE_COUNT = 56;
+  const CENTRAL_PROGRESS_HEARTBEAT_MS = 60000;
   const TRAVERSAL_COMPANION_CHAPTERS = [
     { range: "P. 01–03", title: "Entrada", state: "Preparação", page: 1 },
     { range: "P. 04–05", title: "Método da leitura ativa", state: "Método", page: 4 },
@@ -158,6 +159,8 @@
   const LOCAL_BOOK_ID_TO_BACKEND = Object.fromEntries(
     Object.entries(BACKEND_BOOK_ID_ALIASES).map(([backendId, localId]) => [localId, backendId])
   );
+  let centralProgressHydrationPromise = null;
+  let centralProgressHeartbeatTimer = null;
   const FRAGMENT_ECHOS = [
     { page: 3, label: "Eco 01 · Ruptura", copy: "O primeiro eco rompe a superfície." },
     { page: 13, label: "Eco 02 · Resistência", copy: "A mente tenta conservar o que já deixou de servir." },
@@ -242,6 +245,23 @@
 
   function trackAnalytics(eventName, options = {}) {
     window.PSEU_ANALYTICS?.track?.(eventName, options);
+  }
+
+  function trackCheckoutStartedTelemetry() {
+    try {
+      const attempt = window.PSEU_TELEMETRY?.trackCheckoutStarted?.({
+        offerId: "portal_pseu",
+        provider: "gumroad",
+      });
+      if (attempt?.catch) attempt.catch(() => {});
+    } catch (_error) {}
+  }
+
+  function trackFunnelSectionViewedTelemetry(sectionId) {
+    try {
+      const attempt = window.PSEU_TELEMETRY?.trackSectionViewed?.(sectionId);
+      if (attempt?.catch) attempt.catch(() => {});
+    } catch (_error) {}
   }
 
   function pdfDebug(kind, message, extra) {
@@ -434,7 +454,12 @@
   setupContinuityObservers();
   mountReaderDebugPanel();
   setupPdfJs();
-  selectBook(state.activeIndex, { preservePage: Boolean(saved), open: false, trackHistory: false });
+  selectBook(state.activeIndex, {
+    preservePage: Boolean(saved),
+    open: false,
+    trackHistory: false,
+    touchActivity: false,
+  });
   renderPortalMemory();
   renderOperations();
   updateContinuityUi();
@@ -632,7 +657,10 @@
       if (isIosFunnelGestureGuarded()) return;
       syncFunnelMedia();
     });
-    window.addEventListener("pagehide", () => saveFunnelSessionSnapshot("pagehide"), { passive: true });
+    window.addEventListener("pagehide", () => {
+      saveFunnelSessionSnapshot("pagehide");
+      flushActiveCentralReadingProgress("visibility", true);
+    }, { passive: true });
     window.addEventListener("pageshow", (event) => {
       applyIosFunnelSafeMode();
       if (event.persisted) restoreFunnelSessionSnapshot("pageshow");
@@ -640,6 +668,7 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") {
         saveFunnelSessionSnapshot("visibility-hidden");
+        flushActiveCentralReadingProgress("visibility", true);
       }
     });
     document.addEventListener("touchstart", handleFunnelTouchStart, { passive: true });
@@ -879,15 +908,23 @@
     const documentState = bookState.documents?.[documentId] || {};
     if (documentId === PRIMARY_READER_DOCUMENT_ID) {
       return {
+        ...documentState,
         page: documentState.page ?? bookState.page ?? book?.lastPage ?? 1,
         chapterIndex: documentState.chapterIndex ?? bookState.chapterIndex ?? 0,
         progress: documentState.progress ?? bookState.progress ?? 0,
+        furthestPage: documentState.furthestPage ?? bookState.furthestPage ?? documentState.page ?? bookState.page ?? book?.lastPage ?? 1,
+        updatedAt: documentState.updatedAt ?? bookState.updatedAt ?? 0,
+        serverRevision: documentState.serverRevision ?? bookState.serverRevision ?? 0,
       };
     }
     return {
+      ...documentState,
       page: documentState.page ?? 1,
       chapterIndex: documentState.chapterIndex ?? 0,
       progress: documentState.progress ?? 0,
+      furthestPage: documentState.furthestPage ?? documentState.page ?? 1,
+      updatedAt: documentState.updatedAt ?? 0,
+      serverRevision: documentState.serverRevision ?? 0,
     };
   }
 
@@ -898,10 +935,12 @@
   }
 
   function getReaderDocumentProgress(book, page = state.activePage, documentId = state.activeDocumentId) {
-    return getBookProgress(getReaderDocumentDescriptor(book, documentId), page);
+    const documentState = getReaderDocumentState(book, documentId);
+    const furthestPage = Math.max(Number(page || 1), Number(documentState.furthestPage || 1));
+    return getBookProgress(getReaderDocumentDescriptor(book, documentId), furthestPage);
   }
 
-  function persistReaderDocumentState(book, page = state.activePage) {
+  function persistReaderDocumentState(book, page = state.activePage, options = {}) {
     if (!book?.id || isFragmentReaderScope(book)) return;
     const documentId = normalizeReaderDocumentId(book, state.activeDocumentId);
     const readerBook = getReaderDocumentDescriptor(book, documentId);
@@ -909,14 +948,22 @@
     const documents = bookState.documents && typeof bookState.documents === "object"
       ? { ...bookState.documents }
       : {};
+    const existingDocumentState = documents[documentId] || {};
+    const furthestPage = Math.max(Number(existingDocumentState.furthestPage || existingDocumentState.page || 1), Number(page || 1));
     const chapterIndex = chapterIndexForPage(readerBook, page);
-    const progress = getBookProgress(readerBook, page);
+    const progress = getBookProgress(readerBook, furthestPage);
+    const completedAt = existingDocumentState.completedAt
+      || (readerBook?.pageCount < 900 && furthestPage >= readerBook.pageCount ? new Date().toISOString() : null);
 
     documents[documentId] = {
-      ...(documents[documentId] || {}),
+      ...existingDocumentState,
       page,
+      furthestPage,
       chapterIndex,
-      progress,
+      progress: completedAt ? 100 : progress,
+      completedAt,
+      status: completedAt ? "completed" : furthestPage > 1 ? "reading" : "started",
+      updatedAt: options.touchActivity === false ? Number(existingDocumentState.updatedAt || 0) : Date.now(),
     };
 
     state.bookStates[book.id] = {
@@ -925,10 +972,176 @@
       documents,
       ...(documentId === PRIMARY_READER_DOCUMENT_ID ? {
         page,
+        furthestPage,
         chapterIndex,
-        progress,
+        progress: documents[documentId].progress,
+        completedAt,
+        updatedAt: documents[documentId].updatedAt,
+        serverRevision: documents[documentId].serverRevision || 0,
       } : {}),
     };
+  }
+
+  function getCentralProgressApi() {
+    return window.PSEU_READING_PROGRESS || null;
+  }
+
+  function getCentralProgressIdentity(book, documentId = state.activeDocumentId) {
+    if (!book?.id || !isProtectedPortalRoute() || isFragmentReaderScope(book)) return null;
+    const normalizedDocumentId = normalizeReaderDocumentId(book, documentId);
+    const readerBook = getReaderDocumentDescriptor(book, normalizedDocumentId);
+    const backendBookId = book.backendBookId || LOCAL_BOOK_ID_TO_BACKEND[book.id];
+    const totalPages = Number(readerBook?.pageCount || 0);
+    if (!backendBookId || !readerBook?.canRead || !Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages >= 900) {
+      return null;
+    }
+    return { backendBookId, documentId: normalizedDocumentId, readerBook, totalPages };
+  }
+
+  function buildCentralReadingCheckpoint(book, documentId, reason) {
+    const identity = getCentralProgressIdentity(book, documentId);
+    if (!identity) return null;
+    const documentState = getReaderDocumentState(book, identity.documentId);
+    const currentPage = clamp(Number(documentState.page || 1), 1, identity.totalPages);
+    const furthestPage = clamp(
+      Math.max(currentPage, Number(documentState.furthestPage || currentPage)),
+      currentPage,
+      identity.totalPages,
+    );
+    const progressPercent = getCentralProgressApi().calculatePercent(furthestPage, identity.totalPages);
+    const resolvedReason = progressPercent >= 100 && reason === "progress" ? "completed" : reason;
+    return {
+      bookId: identity.backendBookId,
+      documentId: identity.documentId,
+      current_page: currentPage,
+      furthest_page: furthestPage,
+      total_pages: identity.totalPages,
+      progress_percent: progressPercent,
+      expected_revision: Number(documentState.serverRevision || 0),
+      reason: resolvedReason,
+    };
+  }
+
+  function applyCentralProgressToLocal(book, remote, options = {}) {
+    const api = getCentralProgressApi();
+    if (!api || !book?.id || !remote?.document_id) return false;
+    const documentId = normalizeReaderDocumentId(book, remote.document_id);
+    const existingBookState = state.bookStates[book.id] || {};
+    const documents = existingBookState.documents && typeof existingBookState.documents === "object"
+      ? { ...existingBookState.documents }
+      : {};
+    const existing = getReaderDocumentState(book, documentId);
+    const merged = api.merge(existing, remote);
+    const readerBook = getReaderDocumentDescriptor(book, documentId);
+    merged.page = normalizeReaderPage(merged.page, readerBook);
+    merged.furthestPage = normalizeReaderPage(Math.max(merged.furthestPage, merged.page), readerBook);
+    merged.chapterIndex = chapterIndexForPage(readerBook, merged.page);
+
+    documents[documentId] = merged;
+    state.bookStates[book.id] = {
+      ...existingBookState,
+      documents,
+      ...(documentId === PRIMARY_READER_DOCUMENT_ID ? {
+        page: merged.page,
+        furthestPage: merged.furthestPage,
+        chapterIndex: merged.chapterIndex,
+        progress: merged.progress,
+        completedAt: merged.completedAt,
+        updatedAt: merged.updatedAt,
+        serverRevision: merged.serverRevision,
+      } : {}),
+    };
+
+    if (book.id === getCurrentBook()?.id && documentId === state.activeDocumentId && options.reposition !== false) {
+      state.activePage = merged.page;
+      state.resumePage = merged.page;
+      state.activeChapterIndex = merged.chapterIndex;
+      if (documentId === PRIMARY_READER_DOCUMENT_ID) book.lastPage = merged.page;
+      if (options.render !== false) {
+        updateReader(book);
+        updateChapterSelection();
+        updatePageSelection();
+      }
+    }
+    saveState();
+    return true;
+  }
+
+  function centralProgressHandlers(book) {
+    return {
+      onSuccess(remote) {
+        if (remote) applyCentralProgressToLocal(book, remote, { render: false, reposition: false });
+      },
+      onConflict(remote) {
+        if (remote) applyCentralProgressToLocal(book, remote, { render: isReaderOpen() });
+      },
+      onError() {
+        // O estado local continua sendo a fonte imediata quando o backend está indisponível.
+      },
+    };
+  }
+
+  function queueCentralReadingCheckpoint(book, reason = "progress", options = {}) {
+    const api = getCentralProgressApi();
+    const checkpoint = buildCentralReadingCheckpoint(book, state.activeDocumentId, reason);
+    if (!api || !checkpoint) return null;
+    const handlers = centralProgressHandlers(book);
+    if (options.immediate) {
+      return api.flush(checkpoint, handlers, { keepalive: Boolean(options.keepalive) });
+    }
+    api.queue(checkpoint, handlers);
+    return null;
+  }
+
+  function flushCentralReadingCheckpoint(book, documentId, reason = "progress", keepalive = false) {
+    const api = getCentralProgressApi();
+    const checkpoint = buildCentralReadingCheckpoint(book, documentId, reason);
+    if (!api || !checkpoint) return null;
+    return api.flush(checkpoint, centralProgressHandlers(book), { keepalive });
+  }
+
+  function flushActiveCentralReadingProgress(reason = "visibility", keepalive = false) {
+    const book = getCurrentBook();
+    if (!book || !isReaderOpen() || isFragmentReaderScope(book)) return null;
+    persistReaderDocumentState(book, state.activePage, { touchActivity: false });
+    saveState();
+    return flushCentralReadingCheckpoint(book, state.activeDocumentId, reason, keepalive);
+  }
+
+  function startCentralProgressHeartbeat() {
+    stopCentralProgressHeartbeat();
+    centralProgressHeartbeatTimer = window.setInterval(() => {
+      flushActiveCentralReadingProgress("max-interval");
+    }, CENTRAL_PROGRESS_HEARTBEAT_MS);
+  }
+
+  function stopCentralProgressHeartbeat() {
+    window.clearInterval(centralProgressHeartbeatTimer);
+    centralProgressHeartbeatTimer = null;
+  }
+
+  function hydrateCentralReadingProgress() {
+    const api = getCentralProgressApi();
+    if (!api || !isProtectedPortalRoute()) return Promise.resolve([]);
+    if (centralProgressHydrationPromise) return centralProgressHydrationPromise;
+
+    centralProgressHydrationPromise = api.fetchAll()
+      .then((rows) => {
+        rows.forEach((remote) => {
+          const localBookId = BACKEND_BOOK_ID_ALIASES[remote.book_id] || remote.book_id;
+          const book = books.find((candidate) => candidate.id === localBookId);
+          if (!book || !getCentralProgressIdentity(book, remote.document_id)) return;
+          applyCentralProgressToLocal(book, remote, { render: false });
+        });
+        const currentBook = getCurrentBook();
+        if (currentBook && isReaderOpen()) updateReader(currentBook);
+        renderLibrary();
+        renderPortalMemory();
+        renderOperations();
+        return rows;
+      })
+      .catch(() => []);
+    return centralProgressHydrationPromise;
   }
 
   function selectBook(index, options = {}) {
@@ -959,7 +1172,9 @@
     if (!fragmentScope) {
       state.lastBookId = book.id;
     }
-    if (!fragmentScope) persistReaderDocumentState(book, state.activePage);
+    if (!fragmentScope) persistReaderDocumentState(book, state.activePage, {
+      touchActivity: options.touchActivity !== false,
+    });
     state.readerError = "";
     delete els.body.dataset.readerError;
     els.readerDebug?.classList.remove("is-visible");
@@ -1025,6 +1240,7 @@
     if (!fragmentScope) {
       touchLastOpenedBook(book, state.activePage);
       saveState();
+      queueCentralReadingCheckpoint(book, "progress");
     }
     renderOperations();
     updateContinuityUi();
@@ -1104,7 +1320,9 @@
     const chapter = chapterForPage(book, state.activePage);
     const pageMood = pageMoodFor(book, state.activePage);
     const spread = buildReaderSpread(book, state.activePage, compact, maxPage);
-    const progress = getBookProgress(book, state.activePage);
+    const progress = fragmentScope
+      ? getBookProgress(book, state.activePage)
+      : getReaderDocumentProgress(catalogBook, state.activePage, state.activeDocumentId);
     const captionText = spread.leftMood.copy || chapter?.note || book.caption || "Uma leitura íntima, sem ruído técnico.";
 
     pdfDebug("CHECK", `updateReader`, `${book.id} | page ${state.activePage} | mode ${spread.mode} | source=${readerSourceModeFor(book)}`);
@@ -1215,8 +1433,8 @@
 
   function getStoredBookProgress(book) {
     const stored = state.bookStates?.[book?.id];
-    if (stored && Number.isFinite(Number(stored.page))) {
-      return getBookProgress(book, stored.page);
+    if (stored && Number.isFinite(Number(stored.furthestPage || stored.page))) {
+      return getBookProgress(book, stored.furthestPage || stored.page);
     }
     if (book?.lastPage) {
       return getBookProgress(book, book.lastPage);
@@ -1317,7 +1535,7 @@
       documentId: state.activeDocumentId,
       documentTitle: readerBook.title,
       page: Number(page || 1),
-      progress: getBookProgress(readerBook, page),
+      progress: getReaderDocumentProgress(book, page, state.activeDocumentId),
       timestamp: Date.now(),
     };
     state.lastOpenedAt = entry.timestamp;
@@ -3981,6 +4199,7 @@
     els.body.dataset.funnelPage = targetPageId;
     els.body.dataset.funnelUnlockedStage = String(state.funnelUnlockedStage);
     state.currentFunnelPageId = targetPageId;
+    trackFunnelSectionViewedTelemetry(targetPageId);
     if (!options.skipSnapshot) {
       saveFunnelSessionSnapshot(options.reset ? "reset" : "unlock");
     }
@@ -4200,6 +4419,7 @@
     }
 
     clearLocalPortalAuthState();
+    window.PSEU_TELEMETRY?.rotateBehavioralSession?.();
     window.location.assign("/acesso");
   }
 
@@ -4293,6 +4513,7 @@
     const config = await readCheckoutConfig();
 
     if (config.checkoutUrl) {
+      trackCheckoutStartedTelemetry();
       trackAnalytics("final_cta_checkout_redirect", {
         section: "travessia",
         page: "page-3",
@@ -4501,6 +4722,7 @@
     renderPortalMemory();
     renderOperations();
     updateContinuityUi();
+    void hydrateCentralReadingProgress();
     if (els.readerLayout?.classList.contains("is-open")) {
       if (!presentTraversalCompanionOnFirstOpen(getCurrentBook())) {
         updateReader(getCurrentBook());
@@ -5513,7 +5735,8 @@
     }
 
     flushTraversalNotebookSave();
-    persistReaderDocumentState(book, state.activePage);
+    persistReaderDocumentState(book, state.activePage, { touchActivity: false });
+    flushCentralReadingCheckpoint(book, state.activeDocumentId, "document-switch");
     state.activeDocumentId = targetDocumentId;
     const readerBook = getActiveReaderBook(book);
     state.activePage = normalizeReaderPage(getReaderDocumentSavedPage(book, targetDocumentId), readerBook);
@@ -5530,6 +5753,7 @@
     renderTraversalNotebook();
     touchLastOpenedBook(book, state.activePage);
     saveState();
+    queueCentralReadingCheckpoint(book, "opened", { immediate: true });
     trackAnalytics("reader_document_changed", {
       section: "reader",
       page: `reader-page-${state.activePage}`,
@@ -5717,6 +5941,12 @@
           progress: getReaderDocumentProgress(book, state.activePage),
           details: { documentId: state.activeDocumentId },
         });
+        const documentState = getReaderDocumentState(book, state.activeDocumentId);
+        const isResume = Number(documentState.furthestPage || 1) > 1;
+        if (!companionPresented) {
+          queueCentralReadingCheckpoint(book, isResume ? "resumed" : "opened", { immediate: true });
+        }
+        startCentralProgressHeartbeat();
       }
       if (!companionPresented) {
         const rerender = () => updateReader(book);
@@ -5770,6 +6000,9 @@
     const wasOpen = els.readerLayout.classList.contains("is-open");
     const book = getCurrentBook();
     const fragmentScope = isFragmentReaderScope(book);
+    if (wasOpen && !fragmentScope) {
+      flushActiveCentralReadingProgress("reader-close");
+    }
     els.readerLayout.classList.remove("is-open");
     els.readerLayout.setAttribute("aria-hidden", "true");
     delete els.readerLayout.dataset.readerScope;
@@ -5785,6 +6018,7 @@
     }
     hideReaderControls();
     clearTimeout(state.controlsTimer);
+    stopCentralProgressHeartbeat();
     if (wasOpen) {
       trackAnalytics("reader_returned_to_portal", {
         section: "reader",
