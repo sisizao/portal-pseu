@@ -13846,33 +13846,35 @@ body.is-reader-debug .reader-hud {
 }
 
 @media (max-width: 760px) {
+  .preportal-page--travessia {
+    overflow-x: hidden !important;
+  }
+
   .preportal-page--travessia .travessia-investigation-thread {
     top: clamp(640px, 74svh, 760px) !important;
     right: auto !important;
     bottom: 148px !important;
     left: 16px !important;
     width: 24px !important;
-    opacity: 0.82 !important;
+    z-index: 8 !important;
+    opacity: 0.96 !important;
   }
 
   .preportal-page--travessia .travessia-investigation-thread__line {
     right: auto !important;
     left: 0 !important;
     width: 3px !important;
+    background:
+      repeating-linear-gradient(116deg, rgba(72, 5, 5, 0.78) 0 2px, rgba(204, 43, 34, 0.98) 2px 4px, rgba(59, 4, 4, 0.7) 4px 7px) left top / 3px 49.74% no-repeat,
+      repeating-linear-gradient(116deg, rgba(104, 10, 9, 0.82) 0 2px, rgba(216, 53, 42, 0.94) 2px 4px, rgba(92, 7, 7, 0.78) 4px 7px) 1px bottom / 2px 50.26% no-repeat !important;
+    filter: drop-shadow(0 0 5px rgba(177, 38, 31, 0.28)) !important;
+    opacity: 1 !important;
   }
 
-  .preportal-page--travessia .travessia-investigation-thread__line::before {
-    right: auto !important;
-    left: 0 !important;
-    width: 3px !important;
-    height: 50.6% !important;
-  }
-
+  .preportal-page--travessia .travessia-investigation-thread__line::before,
   .preportal-page--travessia .travessia-investigation-thread__line::after {
-    top: 50.6% !important;
-    right: auto !important;
-    left: 1px !important;
-    width: 1px !important;
+    content: none !important;
+    display: none !important;
   }
 
   .preportal-page--travessia .travessia-thread-anchor,
@@ -13891,18 +13893,30 @@ body.is-reader-debug .reader-hud {
     top: 32px !important;
   }
 
+  .preportal-page--travessia .travessia-official__chapter > .travessia-thread-anchor,
   .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor {
-    top: 60px !important;
+    --investigation-branch: 28px;
+    --investigation-fine: 30px;
+    top: 14px !important;
+    left: -31px !important;
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor {
+    --investigation-branch: 24px;
+    --investigation-fine: 28px;
+    top: 0 !important;
   }
 
   .preportal-page--travessia .travessia-official__access > .travessia-thread-anchor {
-    top: 78px !important;
+    top: 16px !important;
   }
 
   .preportal-page--travessia .recovered-archives > .travessia-thread-anchor--center {
-    --investigation-branch: 32px;
-    --investigation-fine: 36px;
-    top: 80% !important;
+    --investigation-branch: 44px;
+    --investigation-fine: 44px;
+    top: 78% !important;
     right: auto !important;
     left: -34px !important;
     width: 16px !important;
@@ -13922,7 +13936,7 @@ body.is-reader-debug .reader-hud {
   .preportal-page--travessia .travessia-thread-anchor--final {
     --investigation-branch: 30px;
     --investigation-fine: 10px;
-    top: 75% !important;
+    top: calc(75% - 28px) !important;
     right: auto !important;
     left: -10px !important;
     width: 12px !important;
@@ -13931,6 +13945,11 @@ body.is-reader-debug .reader-hud {
 
   .preportal-page--travessia .travessia-thread-anchor::before {
     inset: 3px !important;
+  }
+
+  .preportal-page--travessia .travessia-official__chapter > .travessia-thread-anchor::before,
+  .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor::before {
+    inset: 2px !important;
   }
 
   .preportal-page--travessia .travessia-thread-anchor--continuation::before,
@@ -13948,10 +13967,16 @@ body.is-reader-debug .reader-hud {
     transform-origin: left center !important;
   }
 
+  .preportal-page--travessia .travessia-official__chapter > .travessia-thread-anchor::after,
+  .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor::after {
+    left: 6px !important;
+  }
+
   .preportal-page--travessia .recovered-archives > .travessia-thread-anchor--center::after {
     right: auto !important;
     left: 8px !important;
     width: var(--investigation-branch) !important;
+    max-width: none !important;
     height: 1px !important;
     transform: translateY(-50%) rotate(1deg) !important;
     transform-origin: left center !important;
@@ -13975,6 +14000,11 @@ body.is-reader-debug .reader-hud {
     font-size: 0.46rem !important;
     letter-spacing: 0.1em !important;
     transform: translateY(calc(-100% - 7px)) rotate(1deg) !important;
+  }
+
+  .preportal-page--travessia .travessia-official__chapter > .travessia-thread-anchor em,
+  .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor em {
+    left: calc(6px + var(--investigation-branch)) !important;
   }
 
   .preportal-page--travessia .recovered-archives > .travessia-thread-anchor--center em {
@@ -14093,8 +14123,14 @@ body.is-reader-debug .reader-hud {
     right: 50% !important;
     left: auto !important;
     width: var(--investigation-stitch) !important;
-    opacity: 0.56 !important;
+    opacity: 0.76 !important;
     transform: translateY(-50%) rotate(0.8deg) !important;
     transform-origin: right center !important;
+  }
+}
+
+@media (min-width: 410px) and (max-width: 760px) {
+  .preportal-page--travessia .travessia-investigation-thread__line {
+    background-size: 3px 50.74%, 2px 49.26% !important;
   }
 }
