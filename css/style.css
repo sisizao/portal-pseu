@@ -11680,6 +11680,7 @@ body.is-reader-debug .reader-hud {
 }
 
 /* Correcao cirurgica: o alfinete pertence a etiqueta DOSSIÊ. */
+@media (width < 0px) {
 .preportal-page--travessia .travessia-official__chapter > .travessia-thread-anchor,
 .preportal-page--travessia .travessia-official__pillars > .travessia-thread-anchor {
   display: none !important;
@@ -11777,6 +11778,7 @@ body.is-reader-debug .reader-hud {
     0 4px 10px rgba(0, 0, 0, 0.2);
   opacity: 0.82;
   transform: rotate(-2deg);
+}
 }
 
 .recovered-archives__screen .recovered-archives__file::before,
@@ -12266,6 +12268,7 @@ body.is-reader-debug .reader-hud {
 }
 
 /* Fechamento da cascata: fios e alfinetes narrativos da Travessia. */
+@media (width < 0px) {
 .preportal-page--travessia {
   overflow-x: clip !important;
 }
@@ -12512,6 +12515,7 @@ body.is-reader-debug .reader-hud {
 .preportal-page--travessia .funnel-cta::after {
   content: none !important;
   display: none !important;
+}
 }
 
 .preportal-page--travessia .recovered-archives__controls::after {
