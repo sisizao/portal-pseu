@@ -11,6 +11,7 @@ const checkoutRoutes = require("./routes/checkout.routes");
 const gumroadRoutes = require("./routes/gumroad.routes");
 const telemetryRoutes = require("./routes/telemetry.routes");
 const readingProgressRoutes = require("./routes/reading-progress.routes");
+const adminObservabilityRoutes = require("./routes/admin-observability.routes");
 const aiPanelRoutes = require("./routes/ai-panel.routes");
 const portalRoutes = require("./routes/portal.routes");
 const { assetExistsSync, getPublicFragmentDescriptor } = require("./services/content-provisioning.service");
@@ -182,6 +183,7 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/webhooks", gumroadRoutes);
 app.use("/api/telemetry", telemetryRoutes);
 app.use("/api/reading-progress", readingProgressRoutes);
+app.use("/api/admin/observability", adminObservabilityRoutes);
 app.use("/", aiPanelRoutes);
 app.use("/", portalRoutes);
 
