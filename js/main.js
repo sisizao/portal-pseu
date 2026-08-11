@@ -236,6 +236,17 @@
   ];
   const RECOVERED_ARCHIVE_UNLOCK_RATIO = 0.995;
   const RECOVERED_ARCHIVE_PROGRESS_SAVE_MS = 2500;
+  const CONTROLLED_VIDEO_SEEK_EPSILON_SECONDS = 0.05;
+  const CONTROLLED_VIDEO_SEEK_KEYS = new Set([
+    "ArrowLeft",
+    "ArrowRight",
+    "PageUp",
+    "PageDown",
+    "Home",
+    "End",
+    "MediaTrackPrevious",
+    "MediaTrackNext",
+  ]);
   let recoveredArchiveNoticeTimer = 0;
   let recoveredArchiveProgressSavedAt = 0;
   let checkoutConfigPromise = null;
@@ -513,7 +524,10 @@
     });
     els.recoveredArchiveVideo?.addEventListener("play", resetRecoveredArchiveWatchAnchor);
     els.recoveredArchiveVideo?.addEventListener("seeking", markRecoveredArchiveSeeking);
-    els.recoveredArchiveVideo?.addEventListener("seeked", resetRecoveredArchiveWatchAnchor);
+    els.recoveredArchiveVideo?.addEventListener("seeked", () => {
+      finishControlledVideoSeek(els.recoveredArchiveVideo);
+      resetRecoveredArchiveWatchAnchor();
+    });
     els.recoveredArchiveVideo?.addEventListener("ended", handleRecoveredArchiveEnded);
     els.recoveredArchiveVideo?.addEventListener("timeupdate", handleRecoveredArchiveTimeUpdate);
     els.recoveredArchiveVideo?.addEventListener("play", updateRecoveredArchiveControls);
@@ -526,7 +540,7 @@
     els.recoveredArchiveVolume?.addEventListener("input", () => {
       setRecoveredArchiveVolume(Number(els.recoveredArchiveVolume.value));
     });
-    prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
+    prepareControlledVideoPlayer(els.recoveredArchiveVideo);
     bindVideoFullscreenEvents(els.recoveredArchiveVideo);
 
     document.querySelectorAll(".call-official__video, .travessia-entry-background-video, .travessia-entry-artifact__video").forEach((video) => {
@@ -539,7 +553,7 @@
     els.funnelVideos.forEach((video) => {
       const key = video.dataset.funnelVideo;
       const stage = video.closest(".funnel-vsl-stage");
-      prepareVideoPlayerForSafari(video);
+      prepareControlledVideoPlayer(video);
       bindVideoFullscreenEvents(video);
       video.addEventListener("play", () => {
         video.closest(".funnel-vsl-card")?.classList.add("is-playing");
@@ -562,7 +576,7 @@
       video.addEventListener("timeupdate", () => rememberFunnelVideo(video));
       video.addEventListener("timeupdate", () => rememberControlledVideoTime(video));
       video.addEventListener("seeking", () => preventControlledVideoSkip(video));
-      video.addEventListener("seeked", () => rememberControlledVideoTime(video));
+      video.addEventListener("seeked", () => finishControlledVideoSeek(video));
       video.addEventListener("loadedmetadata", () => {
         setFunnelVideoUnavailable(video, false);
         rememberControlledVideoTime(video);
@@ -3665,17 +3679,31 @@
     return Math.max(0, Number(video?.dataset?.maxWatchedTime || 0));
   }
 
-  function setControlledVideoTime(video, seconds) {
+  function setControlledVideoTime(video, seconds, options = {}) {
     if (!video || !Number.isFinite(seconds)) return;
     const safeSeconds = Math.max(0, seconds);
+    const seekToken = String(Number(video.dataset.controlledSeekToken || 0) + 1);
     video.dataset.controlledSeek = "true";
-    video.dataset.maxWatchedTime = String(Math.max(getControlledVideoTime(video), safeSeconds));
+    video.dataset.controlledSeekTarget = String(safeSeconds);
+    video.dataset.controlledSeekToken = seekToken;
+    video.dataset.maxWatchedTime = String(
+      options.resetBoundary ? safeSeconds : Math.max(getControlledVideoTime(video), safeSeconds)
+    );
     try {
       video.currentTime = safeSeconds;
     } catch {}
     window.setTimeout(() => {
-      if (video.dataset.controlledSeek === "true") delete video.dataset.controlledSeek;
-    }, 120);
+      if (video.dataset.controlledSeekToken !== seekToken) return;
+      delete video.dataset.controlledSeek;
+      delete video.dataset.controlledSeekTarget;
+    }, 1500);
+  }
+
+  function finishControlledVideoSeek(video) {
+    if (!video) return;
+    delete video.dataset.controlledSeek;
+    delete video.dataset.controlledSeekTarget;
+    rememberControlledVideoTime(video);
   }
 
   function rememberControlledVideoTime(video) {
@@ -3689,14 +3717,29 @@
   }
 
   function preventControlledVideoSkip(video) {
-    if (!video || video.dataset.controlledSeek === "true") return;
-    const allowed = getControlledVideoTime(video);
+    if (!video) return;
     const current = Number(video.currentTime || 0);
-    if (current > allowed + 1.25) {
+    if (video.dataset.controlledSeek === "true") {
+      const target = Number(video.dataset.controlledSeekTarget);
+      if (Number.isFinite(target) && Math.abs(current - target) > CONTROLLED_VIDEO_SEEK_EPSILON_SECONDS) {
+        try {
+          video.currentTime = target;
+        } catch {}
+      }
+      return;
+    }
+    const allowed = getControlledVideoTime(video);
+    if (Math.abs(current - allowed) > CONTROLLED_VIDEO_SEEK_EPSILON_SECONDS) {
       setControlledVideoTime(video, allowed);
       return;
     }
     rememberControlledVideoTime(video);
+  }
+
+  function preventControlledVideoSeekKey(event) {
+    if (!CONTROLLED_VIDEO_SEEK_KEYS.has(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   function rememberFunnelVideo(video, force = false) {
@@ -3833,6 +3876,24 @@
     video.setAttribute("playsinline", "");
     video.setAttribute("webkit-playsinline", "");
     video.playsInline = true;
+  }
+
+  function prepareControlledVideoPlayer(video) {
+    if (!video) return;
+    prepareVideoPlayerForSafari(video);
+    video.controls = false;
+    video.removeAttribute("controls");
+    video.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
+    video.setAttribute("disablepictureinpicture", "");
+    video.setAttribute("disableremoteplayback", "");
+    video.tabIndex = -1;
+    try {
+      video.disablePictureInPicture = true;
+      video.disableRemotePlayback = true;
+    } catch {}
+    if (video.dataset.seekGuardBound === "true") return;
+    video.dataset.seekGuardBound = "true";
+    video.addEventListener("keydown", preventControlledVideoSeekKey, true);
   }
 
   function isLikelyIosSafari() {
@@ -5148,6 +5209,7 @@
 
     if (command === "toggle") {
       if (video.paused || video.ended) {
+        if (video.ended) setControlledVideoTime(video, 0, { resetBoundary: true });
         const playPromise = video.play();
         if (playPromise?.catch) playPromise.catch(() => {});
       } else {
@@ -5198,7 +5260,7 @@
 
     els.recoveredArchiveVideo.pause();
     if (els.recoveredArchiveVideo.dataset.archiveIndex !== String(index)) {
-      prepareVideoPlayerForSafari(els.recoveredArchiveVideo);
+      prepareControlledVideoPlayer(els.recoveredArchiveVideo);
       els.recoveredArchiveVideo.src = toUrl(config.video);
       els.recoveredArchiveVideo.dataset.archiveIndex = String(index);
       delete els.recoveredArchiveVideo.dataset.maxWatchedTime;
@@ -5212,11 +5274,7 @@
       restoreRecoveredArchiveProgress(index);
       resetRecoveredArchiveWatchAnchor();
     }
-    els.recoveredArchiveVideo.controls = false;
-    els.recoveredArchiveVideo.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
-    try {
-      els.recoveredArchiveVideo.disablePictureInPicture = true;
-    } catch {}
+    prepareControlledVideoPlayer(els.recoveredArchiveVideo);
     els.recoveredArchiveVideo.playbackRate = 1;
     setRecoveredArchiveVolume(Number(els.recoveredArchiveVolume?.value || 0.85));
     updateRecoveredArchiveControls();
@@ -5450,7 +5508,7 @@
       const posterSource = posterAsset?.available === true ? posterAsset.source : media[key];
       const videoUnavailable = videoAsset?.available === false || (videoAsset?.available == null && Boolean(video.error));
       const posterUrl = toUrl(posterSource);
-      prepareVideoPlayerForSafari(video);
+      prepareControlledVideoPlayer(video);
       video.poster = posterUrl;
       video.closest(".funnel-vsl-stage")?.style.setProperty("--funnel-poster", `url("${posterUrl}")`);
       setFunnelVideoUnavailable(video, videoUnavailable);
@@ -5485,6 +5543,7 @@
     });
 
     if (video.paused) {
+      if (video.ended) setControlledVideoTime(video, 0, { resetBoundary: true });
       restoreFunnelVideoPoint(video);
       video.muted = false;
       const playPromise = video.play();
