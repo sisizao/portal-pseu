@@ -30,6 +30,8 @@ function createAdminObservabilityRouter(dependencies = {}) {
   router.use(requireAdmin);
   router.get("/overview", read((req) => service.overview(req.query)));
   router.get("/funnel", read((req) => service.funnel(req.query)));
+  router.get("/sessions", read((req) => service.sessions(req.query)));
+  router.get("/sessions/:sessionId", read((req) => service.sessionDetail(req.params.sessionId, req.query)));
   router.get("/users", read((req) => service.users(req.query)));
   router.get("/reading", read((req) => service.reading(req.query)));
   router.get("/users/:userId/journey", read((req) => service.journey(req.params.userId, req.query)));

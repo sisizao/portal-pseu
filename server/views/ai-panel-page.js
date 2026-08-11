@@ -182,6 +182,14 @@ function renderAiPanelPage() {
     .timeline article { border-left: 2px solid var(--cyan); padding: 10px 14px; background: rgba(94, 217, 210, 0.035); }
     .timeline time, .timeline small { color: var(--quiet); font-size: 0.73rem; }
     .timeline strong { display: block; margin: 4px 0; color: var(--text); }
+    .timeline article.is-key-event { border-left-color: var(--gold); background: rgba(215, 173, 96, 0.055); }
+    .session-detail[hidden] { display: none; }
+    .session-detail { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 4px; }
+    .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+    .pager p { color: var(--quiet); font-size: 0.76rem; }
+    .pager-actions { display: flex; gap: 8px; }
+    .status-tag { display: inline-flex; border: 1px solid var(--line-soft); padding: 4px 7px; color: var(--muted); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+    .status-tag--yes { border-color: rgba(94, 217, 210, 0.35); color: var(--cyan); }
     .footer-note { margin-top: 14px; color: var(--quiet); font-size: 0.76rem; text-align: right; }
 
     @media (max-width: 1080px) {
@@ -232,6 +240,7 @@ function renderAiPanelPage() {
       <nav class="tabs panel" aria-label="Visões do observatório" role="tablist">
         <button class="tab" type="button" role="tab" aria-selected="true" data-view="overview">Visão geral</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-view="funnel">Funil</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-view="sessions">Sessões anônimas</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-view="reading">Leitura</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-view="users">Usuários</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-view="journey">Jornada individual</button>
@@ -252,6 +261,18 @@ function renderAiPanelPage() {
         <section class="view" data-panel="funnel" hidden>
           <header class="view-header"><div><span class="eyebrow">Travessia pública</span><h2>Funil</h2></div><p>Alcance por seção, VSL, CTA e início de checkout, sem atribuição comercial presumida.</p></header>
           <div id="funnel-content" class="loading">Aguardando consulta…</div>
+        </section>
+
+        <section class="view" data-panel="sessions" hidden>
+          <header class="view-header"><div><span class="eyebrow">Raio X pré-login</span><h2>Sessões anônimas recentes</h2></div><p>Sequência comportamental pseudônima, sem tentativa de identificar a pessoa.</p></header>
+          <form id="sessions-filters" class="inline-filters">
+            <label>Vínculo <select name="status"><option value="anonymous" selected>Ainda anônima</option><option value="linked">Posteriormente vinculada</option><option value="all">Todas</option></select></label>
+            <label>Sinal <select name="signal"><option value="">Todos</option><option value="checkout">Checkout iniciado</option><option value="vsl">VSL iniciada</option><option value="cta">CTA acionado</option></select></label>
+            <label>Por página <select name="page_size"><option>25</option><option>50</option><option>100</option></select></label>
+            <button class="button" type="submit">Filtrar</button>
+          </form>
+          <div id="sessions-content" class="loading">Aguardando consulta…</div>
+          <div id="session-detail" class="session-detail" hidden></div>
         </section>
 
         <section class="view" data-panel="reading" hidden>

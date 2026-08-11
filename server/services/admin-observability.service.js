@@ -5,6 +5,12 @@ const MAX_PERIOD_DAYS = 366;
 const MAX_PAGE_SIZE = 100;
 const MAX_JOURNEY_ITEMS = 200;
 const IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+const SESSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SECTION_RANK = Object.freeze({
+  "funil-chamado": 1,
+  "funil-biblioteca": 2,
+  "funil-travessia": 3,
+});
 
 class AdminObservabilityError extends Error {
   constructor(code, status = 400) {
@@ -89,6 +95,22 @@ function parseStatus(value, allowed) {
   return normalized;
 }
 
+function parseBooleanFilter(value, field) {
+  if (value == null || value === "") return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === "true" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "0") return false;
+  throw new AdminObservabilityError(`invalid_${field}`);
+}
+
+function parseSessionId(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!SESSION_ID_PATTERN.test(normalized)) {
+    throw new AdminObservabilityError("invalid_session_id");
+  }
+  return normalized;
+}
+
 function number(value) {
   return Number(value || 0);
 }
@@ -128,6 +150,76 @@ function safeJourneyProperties(eventName, properties) {
       .filter((key) => Object.prototype.hasOwnProperty.call(source, key))
       .map((key) => [key, source[key]])
   );
+}
+
+function shortSessionId(value) {
+  return String(value || "").replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+function approximateDurationSeconds(startedAt, lastSeenAt) {
+  const started = new Date(startedAt).getTime();
+  const lastSeen = new Date(lastSeenAt).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(lastSeen)) return 0;
+  return Math.max(0, Math.round((lastSeen - started) / 1000));
+}
+
+function sessionStage({ funnelStarted, checkoutStarted, ctaClicked, vslStarted, highestVslMilestone, furthestSectionId }) {
+  if (checkoutStarted) return { code: "checkout_started", label: "Checkout iniciado" };
+  if (ctaClicked) return { code: "cta_clicked", label: "CTA acionado" };
+  if (highestVslMilestone) {
+    return { code: "vsl_progress", label: `VSL ${highestVslMilestone}%` };
+  }
+  if (vslStarted) return { code: "vsl_started", label: "VSL iniciada" };
+  if (furthestSectionId) return { code: "section_viewed", label: `Seção: ${furthestSectionId}` };
+  if (funnelStarted) return { code: "funnel_started", label: "Entrada no funil" };
+  return { code: "session_created", label: "Sessão criada" };
+}
+
+function summarizeSessionEvents(rows = []) {
+  let furthestSectionId = null;
+  let furthestSectionRank = 0;
+  let highestVslMilestone = 0;
+  let funnelStarted = false;
+  let vslStarted = false;
+  let ctaClicked = false;
+  let checkoutStarted = false;
+
+  for (const row of rows) {
+    if (row.event_name === "funnel_started") funnelStarted = true;
+    if (row.event_name === "section_viewed") {
+      const rank = SECTION_RANK[row.section_id] || 0;
+      if (rank >= furthestSectionRank) {
+        furthestSectionRank = rank;
+        furthestSectionId = row.section_id || furthestSectionId;
+      }
+    }
+    if (row.event_name === "vsl_started") vslStarted = true;
+    if (row.event_name === "vsl_progress") {
+      const milestone = number(row.properties?.milestone);
+      if ([25, 50, 75, 100].includes(milestone)) {
+        highestVslMilestone = Math.max(highestVslMilestone, milestone);
+      }
+    }
+    if (row.event_name === "cta_clicked") ctaClicked = true;
+    if (row.event_name === "checkout_started") checkoutStarted = true;
+  }
+
+  return {
+    furthest_section_id: furthestSectionId,
+    funnel_started: funnelStarted,
+    vsl_started: vslStarted,
+    highest_vsl_milestone: highestVslMilestone || null,
+    cta_clicked: ctaClicked,
+    checkout_started: checkoutStarted,
+    stage: sessionStage({
+      funnelStarted,
+      checkoutStarted,
+      ctaClicked,
+      vslStarted,
+      highestVslMilestone,
+      furthestSectionId,
+    }),
+  };
 }
 
 function createAdminObservabilityService(dependencies = {}) {
@@ -410,6 +502,278 @@ function createAdminObservabilityService(dependencies = {}) {
     };
   }
 
+  async function sessions(input = {}) {
+    const period = parsePeriod(input);
+    const pagination = parsePagination(input);
+    const linkStatus = parseStatus(input.status || "anonymous", ["anonymous", "linked", "all"]);
+    const hasCheckout = parseBooleanFilter(input.has_checkout, "has_checkout");
+    const hasVsl = parseBooleanFilter(input.has_vsl, "has_vsl");
+    const hasCta = parseBooleanFilter(input.has_cta, "has_cta");
+    const params = [
+      period.from,
+      period.to,
+      linkStatus,
+      hasCheckout,
+      hasVsl,
+      hasCta,
+      pagination.pageSize,
+      pagination.offset,
+    ];
+
+    const result = await runQuery(
+      `WITH candidate_sessions AS (
+         SELECT bs.id,
+                bs.user_id,
+                bs.started_at,
+                bs.last_seen_at,
+                bs.ended_at,
+                bs.linked_at,
+                bs.entry_path,
+                bs.entry_source,
+                bs.device_class
+           FROM behavioral_sessions bs
+          WHERE bs.last_seen_at >= $1
+            AND bs.started_at < $2
+            AND (
+              $3::text = 'all'
+              OR ($3::text = 'anonymous' AND bs.user_id IS NULL)
+              OR ($3::text = 'linked' AND bs.user_id IS NOT NULL)
+            )
+       ), event_summary AS (
+         SELECT e.session_id,
+                count(*)::int AS event_count,
+                max(e.occurred_at) AS last_event_at,
+                (array_agg(e.event_name ORDER BY e.occurred_at DESC, e.received_at DESC))[1] AS last_event_name,
+                bool_or(e.event_name = 'funnel_started') AS funnel_started,
+                bool_or(e.event_name = 'vsl_started') AS vsl_started,
+                max(
+                  CASE
+                    WHEN e.event_name = 'vsl_progress'
+                      AND e.properties->>'milestone' IN ('25', '50', '75', '100')
+                    THEN (e.properties->>'milestone')::int
+                    ELSE NULL
+                  END
+                )::int AS highest_vsl_milestone,
+                bool_or(e.event_name = 'cta_clicked') AS cta_clicked,
+                bool_or(e.event_name = 'checkout_started') AS checkout_started,
+                (array_agg(
+                  e.section_id
+                  ORDER BY CASE e.section_id
+                    WHEN 'funil-travessia' THEN 3
+                    WHEN 'funil-biblioteca' THEN 2
+                    WHEN 'funil-chamado' THEN 1
+                    ELSE 0
+                  END DESC,
+                  e.occurred_at DESC
+                ) FILTER (WHERE e.event_name = 'section_viewed' AND e.section_id IS NOT NULL))[1] AS furthest_section_id
+           FROM events e
+           JOIN candidate_sessions cs ON cs.id = e.session_id
+          GROUP BY e.session_id
+       ), filtered_sessions AS (
+         SELECT cs.*,
+                COALESCE(es.event_count, 0)::int AS event_count,
+                es.last_event_at,
+                es.last_event_name,
+                COALESCE(es.funnel_started, false) AS funnel_started,
+                COALESCE(es.vsl_started, false) AS vsl_started,
+                es.highest_vsl_milestone,
+                COALESCE(es.cta_clicked, false) AS cta_clicked,
+                COALESCE(es.checkout_started, false) AS checkout_started,
+                es.furthest_section_id
+           FROM candidate_sessions cs
+           LEFT JOIN event_summary es ON es.session_id = cs.id
+          WHERE ($4::boolean IS NULL OR COALESCE(es.checkout_started, false) = $4)
+            AND ($5::boolean IS NULL OR COALESCE(es.vsl_started, false) = $5)
+            AND ($6::boolean IS NULL OR COALESCE(es.cta_clicked, false) = $6)
+       )
+       SELECT fs.*,
+              count(*) OVER()::int AS total_count,
+              CASE
+                WHEN fs.ended_at IS NULL AND fs.last_seen_at >= NOW() - INTERVAL '35 minutes'
+                THEN 'active'
+                ELSE 'inactive'
+              END AS activity_status
+         FROM filtered_sessions fs
+        ORDER BY fs.last_seen_at DESC, fs.started_at DESC, fs.id DESC
+        LIMIT $7 OFFSET $8`,
+      params
+    );
+
+    const items = result.rows.map((row) => {
+      const highestVslMilestone = row.highest_vsl_milestone == null
+        ? null
+        : number(row.highest_vsl_milestone);
+      const stage = sessionStage({
+        funnelStarted: row.funnel_started,
+        checkoutStarted: row.checkout_started,
+        ctaClicked: row.cta_clicked,
+        vslStarted: row.vsl_started,
+        highestVslMilestone,
+        furthestSectionId: row.furthest_section_id,
+      });
+      return {
+        session_id: String(row.id),
+        session_label: shortSessionId(row.id),
+        started_at: row.started_at,
+        last_seen_at: row.last_seen_at,
+        last_event_at: row.last_event_at,
+        duration_seconds: approximateDurationSeconds(row.started_at, row.last_seen_at),
+        event_count: number(row.event_count),
+        last_event_name: row.last_event_name,
+        furthest_section_id: row.furthest_section_id,
+        stage,
+        funnel_started: Boolean(row.funnel_started),
+        vsl_started: Boolean(row.vsl_started),
+        highest_vsl_milestone: highestVslMilestone,
+        cta_clicked: Boolean(row.cta_clicked),
+        checkout_started: Boolean(row.checkout_started),
+        link_status: row.user_id == null ? "anonymous" : "linked",
+        linked_at: row.linked_at,
+        linked_user_id: row.user_id == null ? null : String(row.user_id),
+        activity_status: row.activity_status,
+        entry_path: row.entry_path,
+        entry_source: row.entry_source,
+        device_class: row.device_class,
+      };
+    });
+
+    return {
+      period,
+      filters: {
+        status: linkStatus,
+        has_checkout: hasCheckout,
+        has_vsl: hasVsl,
+        has_cta: hasCta,
+      },
+      items,
+      pagination: {
+        page: pagination.page,
+        page_size: pagination.pageSize,
+        total: number(result.rows[0]?.total_count),
+        total_pages: Math.ceil(number(result.rows[0]?.total_count) / pagination.pageSize),
+      },
+      privacy: "A lista usa apenas IDs pseudonimos de sessao e metadados comportamentais permitidos.",
+      commercial_correlation_available: false,
+    };
+  }
+
+  async function sessionDetail(sessionIdValue, input = {}) {
+    const sessionId = parseSessionId(sessionIdValue);
+    const period = parsePeriod(input);
+    const limit = parsePositiveInteger(input.limit, 100, MAX_JOURNEY_ITEMS);
+    const sessionResult = await runQuery(
+      `SELECT id,
+              user_id,
+              started_at,
+              last_seen_at,
+              ended_at,
+              linked_at,
+              entry_path,
+              entry_source,
+              device_class
+         FROM behavioral_sessions
+        WHERE id = $1::uuid
+        LIMIT 1`,
+      [sessionId]
+    );
+    const session = sessionResult.rows[0];
+    if (!session) throw new AdminObservabilityError("session_not_found", 404);
+
+    const [eventsResult, countResult] = await Promise.all([
+      runQuery(
+        `SELECT id,
+                event_name,
+                source,
+                occurred_at,
+                received_at,
+                section_id,
+                book_id,
+                document_id,
+                properties
+           FROM events
+          WHERE session_id = $1::uuid
+            AND occurred_at >= $2
+            AND occurred_at < $3
+          ORDER BY occurred_at ASC, received_at ASC
+          LIMIT $4`,
+        [sessionId, period.from, period.to, limit]
+      ),
+      runQuery(
+        `SELECT count(*)::int AS total
+           FROM events
+          WHERE session_id = $1::uuid
+            AND occurred_at >= $2
+            AND occurred_at < $3`,
+        [sessionId, period.from, period.to]
+      ),
+    ]);
+
+    const summary = summarizeSessionEvents(eventsResult.rows);
+    const timeline = [
+      {
+        type: "behavioral_session_started",
+        occurred_at: session.started_at,
+        details: {
+          entry_path: session.entry_path,
+          entry_source: session.entry_source,
+          device_class: session.device_class,
+        },
+      },
+      ...eventsResult.rows.map((event) => ({
+        type: event.event_name,
+        occurred_at: event.occurred_at,
+        event_id: String(event.id),
+        source: event.source,
+        section_id: event.section_id,
+        book_id: event.book_id,
+        document_id: event.document_id,
+        details: safeJourneyProperties(event.event_name, event.properties),
+      })),
+      ...(session.linked_at ? [{
+        type: "behavioral_session_linked",
+        occurred_at: session.linked_at,
+        details: {},
+      }] : []),
+    ].sort((left, right) => new Date(left.occurred_at) - new Date(right.occurred_at));
+
+    timeline.forEach((item, index) => {
+      if (index === 0) item.delta_seconds = 0;
+      else {
+        item.delta_seconds = Math.max(0, Math.round(
+          (new Date(item.occurred_at) - new Date(timeline[index - 1].occurred_at)) / 1000
+        ));
+      }
+    });
+
+    return {
+      period,
+      session: {
+        session_id: String(session.id),
+        session_label: shortSessionId(session.id),
+        started_at: session.started_at,
+        last_seen_at: session.last_seen_at,
+        ended_at: session.ended_at,
+        linked_at: session.linked_at,
+        linked_user_id: session.user_id == null ? null : String(session.user_id),
+        link_status: session.user_id == null ? "anonymous" : "linked",
+        duration_seconds: approximateDurationSeconds(session.started_at, session.last_seen_at),
+        entry_path: session.entry_path,
+        entry_source: session.entry_source,
+        device_class: session.device_class,
+      },
+      summary,
+      timeline,
+      timeline_total: number(countResult.rows[0]?.total) + 1 + (session.linked_at ? 1 : 0),
+      timeline_truncated: number(countResult.rows[0]?.total) > eventsResult.rows.length,
+      purchase_observation: summary.checkout_started ? "not_observed_in_behavioral_telemetry" : "not_applicable",
+      purchase_copy: summary.checkout_started
+        ? "Checkout iniciado. Compra não observada por esta telemetria comportamental."
+        : "Nenhuma compra é inferida a partir desta sessão comportamental.",
+      privacy: "O raio X exibe somente metadados permitidos; identidade, credenciais e payloads integrais nunca sao retornados.",
+      commercial_correlation_available: false,
+    };
+  }
+
   async function journey(userIdValue, input = {}) {
     const userId = parseUserId(userIdValue);
     const period = parsePeriod(input);
@@ -537,6 +901,8 @@ function createAdminObservabilityService(dependencies = {}) {
     funnel,
     users,
     reading,
+    sessions,
+    sessionDetail,
     journey,
   };
 }
@@ -544,7 +910,10 @@ function createAdminObservabilityService(dependencies = {}) {
 module.exports = {
   AdminObservabilityError,
   createAdminObservabilityService,
+  parseBooleanFilter,
   parsePagination,
   parsePeriod,
+  parseSessionId,
   safeJourneyProperties,
+  summarizeSessionEvents,
 };

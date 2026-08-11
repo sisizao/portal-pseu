@@ -326,21 +326,97 @@ test("Pacote 7 oferece observabilidade administrativa estritamente read-only", a
       assert.equal(data.pagination.total, 0);
     });
 
-    await t.test("26 painel desktop preserva atalhos e cinco visoes", async () => {
+    await t.test("26 sessoes anonimas recentes usam apenas identificador pseudonimo", async () => {
+      const data = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}`);
+      assert.equal(data.filters.status, "anonymous");
+      assert.equal(data.items.length, 2);
+      assert.ok(data.items.every((item) => item.link_status === "anonymous"));
+      assert.ok(data.items.every((item) => /^[A-F0-9]{8}$/.test(item.session_label)));
+      assert.equal(data.items.some((item) => item.session_id === sessionIds[2]), false);
+      assert.equal(data.items.find((item) => item.session_id === sessionIds[1]).stage.code, "session_created");
+      assert.equal(JSON.stringify(data).includes(anonymousIds[0]), false);
+      assert.equal(Object.prototype.hasOwnProperty.call(data, "anonymous_id"), false);
+    });
+
+    await t.test("27 filtro encontra checkout anonimo sem inferir compra", async () => {
+      await addEvent({ sessionId: sessionIds[0], eventName: "vsl_started", at: "2031-01-01T10:03:00Z", properties: { vsl_id: "main" } });
+      await addEvent({ sessionId: sessionIds[0], eventName: "vsl_progress", at: "2031-01-01T10:04:00Z", properties: { vsl_id: "main", milestone: 25 } });
+      await addEvent({ sessionId: sessionIds[0], eventName: "cta_clicked", at: "2031-01-01T10:05:00Z", properties: { cta_id: "atravessar_portal", destination: "checkout", private_text: "NAO_EXIBIR_SESSION" } });
+      await addEvent({ sessionId: sessionIds[0], eventName: "checkout_started", at: "2031-01-01T10:06:00Z", properties: { offer_id: "portal_pseu", provider: "gumroad" } });
+
+      const data = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}&has_checkout=true`);
+      assert.equal(data.items.length, 1);
+      assert.equal(data.items[0].session_id, sessionIds[0]);
+      assert.equal(data.items[0].checkout_started, true);
+      assert.equal(data.items[0].highest_vsl_milestone, 25);
+      assert.equal(data.items[0].stage.code, "checkout_started");
+      assert.equal(data.commercial_correlation_available, false);
+      assert.equal(Object.prototype.hasOwnProperty.call(data.items[0], "purchase"), false);
+    });
+
+    await t.test("28 raio X anonimo e cronologico e remove propriedades nao permitidas", async () => {
+      const data = await adminGet(`/api/admin/observability/sessions/${sessionIds[0]}?${PERIOD_QUERY}`);
+      const times = data.timeline.map((item) => new Date(item.occurred_at).getTime());
+      assert.deepEqual(times, [...times].sort((a, b) => a - b));
+      assert.ok(data.timeline.some((item) => item.type === "checkout_started"));
+      assert.ok(data.timeline.every((item) => item.delta_seconds >= 0));
+      assert.equal(data.session.link_status, "anonymous");
+      assert.equal(data.purchase_observation, "not_observed_in_behavioral_telemetry");
+      assert.match(data.purchase_copy, /Compra não observada/i);
+      assert.equal(JSON.stringify(data).includes("NAO_EXIBIR_SESSION"), false);
+      assert.equal(JSON.stringify(data).includes(anonymousIds[0]), false);
+    });
+
+    await t.test("29 sessao posteriormente vinculada aparece somente no filtro correto", async () => {
+      const anonymous = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}&status=anonymous`);
+      const linked = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}&status=linked`);
+      assert.equal(anonymous.items.some((item) => item.session_id === sessionIds[2]), false);
+      assert.equal(linked.items.some((item) => item.session_id === sessionIds[2]), true);
+      assert.equal(linked.items.find((item) => item.session_id === sessionIds[2]).linked_user_id, String(users.target.id));
+    });
+
+    await t.test("30 filtros e paginacao de sessoes sao aplicados", async () => {
+      const vsl = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}&has_vsl=true&page=1&page_size=1`);
+      const cta = await adminGet(`/api/admin/observability/sessions?${PERIOD_QUERY}&has_cta=true`);
+      assert.equal(vsl.items.length, 1);
+      assert.equal(vsl.pagination.page_size, 1);
+      assert.ok(vsl.pagination.total >= 1);
+      assert.equal(cta.items.length, 1);
+      assert.equal(cta.items[0].session_id, sessionIds[0]);
+    });
+
+    await t.test("31 sessao invalida e usuario comum permanecem bloqueados", async () => {
+      const invalid = await request(baseUrl, "/api/admin/observability/sessions/not-a-uuid", { cookie: adminCookie });
+      const forbidden = await request(baseUrl, `/api/admin/observability/sessions?${PERIOD_QUERY}`, { cookie: commonCookie });
+      assert.equal(invalid.response.status, 400);
+      assert.equal(invalid.body.error, "invalid_session_id");
+      assert.equal(forbidden.response.status, 403);
+    });
+
+    await t.test("32 endpoints de sessoes rejeitam escrita", async () => {
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+        const result = await request(baseUrl, "/api/admin/observability/sessions", { method, cookie: adminCookie, body: {} });
+        assert.equal(result.response.status, 405);
+        assert.equal(result.body.error, "method_not_allowed");
+      }
+    });
+
+    await t.test("33 painel desktop preserva atalhos e seis visoes", async () => {
       const page = await request(baseUrl, "/ia-pseu", { cookie: adminCookie, accept: "text/html" });
       assert.match(page.raw, /Ver Funil/);
       assert.match(page.raw, /Ver Portal/);
-      assert.equal((page.raw.match(/data-view=/g) || []).length, 5);
+      assert.match(page.raw, /Sessões anônimas recentes/);
+      assert.equal((page.raw.match(/data-view=/g) || []).length, 6);
     });
 
-    await t.test("27 painel contem adaptacao mobile real", async () => {
+    await t.test("34 painel contem adaptacao mobile real", async () => {
       const source = fs.readFileSync(path.resolve(__dirname, "../views/ai-panel-page.js"), "utf8");
       assert.match(source, /@media \(max-width: 720px\)/);
       assert.match(source, /grid-template-columns: 1fr/);
       assert.match(source, /min-height: 44px/);
     });
 
-    await t.test("28 cliente usa API real e nao possui metricas simuladas", async () => {
+    await t.test("35 cliente usa API real e nao possui metricas simuladas", async () => {
       const source = fs.readFileSync(path.resolve(__dirname, "../../js/admin-observability.js"), "utf8");
       assert.match(source, /\/api\/admin\/observability/);
       assert.doesNotMatch(source, /mock|fixture|fake metric/i);
@@ -351,7 +427,7 @@ test("Pacote 7 oferece observabilidade administrativa estritamente read-only", a
     server = null;
     await cleanup();
 
-    await t.test("29 nenhum dado sintetico permanece", async () => {
+    await t.test("36 nenhum dado sintetico permanece", async () => {
       const result = await query(
         `SELECT
            (SELECT count(*)::int FROM events WHERE id = ANY($1::uuid[])) AS events,

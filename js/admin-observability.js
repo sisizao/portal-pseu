@@ -2,7 +2,13 @@
   "use strict";
 
   const API_BASE = "/api/admin/observability";
-  const state = { view: "overview", loaded: new Set(), readingFilters: {}, userFilters: {} };
+  const state = {
+    view: "overview",
+    loaded: new Set(),
+    readingFilters: {},
+    userFilters: {},
+    sessionsPage: 1,
+  };
   const byId = (id) => document.getElementById(id);
   const all = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
@@ -34,6 +40,17 @@
 
   function title(value) {
     return String(value || "—").replace(/_/g, " ");
+  }
+
+  function formatDuration(value) {
+    const seconds = Math.max(0, Number(value || 0));
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    if (minutes < 60) return remainingSeconds ? `${minutes}min ${remainingSeconds}s` : `${minutes}min`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
   }
 
   function clear(node) {
@@ -97,6 +114,10 @@
     card.appendChild(element("strong", value));
     card.appendChild(element("small", detail));
     return card;
+  }
+
+  function statusTag(text, positive = false) {
+    return element("span", text, `status-tag${positive ? " status-tag--yes" : ""}`);
   }
 
   async function loadOverview() {
@@ -178,6 +199,136 @@
       target.appendChild(element("p", data.caveat, "caveat"));
     } catch (error) {
       message(target, `Não foi possível consultar o funil: ${error.message}`, "error");
+    }
+  }
+
+  function sessionParams(form = byId("sessions-filters"), page = state.sessionsPage) {
+    const params = periodParams();
+    new FormData(form).forEach((value, key) => {
+      const normalized = String(value).trim();
+      if (!normalized) return;
+      if (key === "signal") {
+        if (normalized === "checkout") params.set("has_checkout", "true");
+        if (normalized === "vsl") params.set("has_vsl", "true");
+        if (normalized === "cta") params.set("has_cta", "true");
+        return;
+      }
+      params.set(key, normalized);
+    });
+    params.set("page", String(page));
+    return params;
+  }
+
+  function appendSessionsPager(target, pagination) {
+    const pager = element("div", null, "pager");
+    pager.appendChild(element(
+      "p",
+      `Página ${pagination.page} de ${Math.max(pagination.total_pages, 1)} · ${pagination.total} sessão(ões)`
+    ));
+    const actions = element("div", null, "pager-actions");
+    const previous = element("button", "Anterior", "button");
+    previous.type = "button";
+    previous.disabled = pagination.page <= 1;
+    previous.dataset.sessionsPage = String(Math.max(1, pagination.page - 1));
+    const next = element("button", "Próxima", "button");
+    next.type = "button";
+    next.disabled = pagination.page >= pagination.total_pages;
+    next.dataset.sessionsPage = String(pagination.page + 1);
+    actions.append(previous, next);
+    pager.appendChild(actions);
+    target.appendChild(pager);
+  }
+
+  async function loadSessions(form = byId("sessions-filters"), page = 1) {
+    const target = byId("sessions-content");
+    const detail = byId("session-detail");
+    state.sessionsPage = page;
+    detail.hidden = true;
+    clear(detail);
+    message(target, "Consultando sessões pseudônimas…", "loading");
+    try {
+      const data = await fetchData("/sessions", sessionParams(form, page));
+      clear(target);
+      if (!data.items.length) {
+        return message(target, "Nenhuma sessão encontrada para os filtros.");
+      }
+      appendTable(target, [
+        { label: "Sessão", render: (row) => {
+          const button = element("button", `Sessão ${row.session_label}`, "button");
+          button.type = "button";
+          button.dataset.sessionId = row.session_id;
+          return button;
+        } },
+        { label: "Início", render: (row) => formatDate(row.started_at) },
+        { label: "Última atividade", render: (row) => formatDate(row.last_seen_at) },
+        { label: "Duração", render: (row) => formatDuration(row.duration_seconds) },
+        { label: "Eventos", key: "event_count" },
+        { label: "Estágio", render: (row) => row.stage?.label || "Entrada no funil" },
+        { label: "VSL", render: (row) => row.vsl_started
+          ? statusTag(row.highest_vsl_milestone ? `${row.highest_vsl_milestone}%` : "Iniciada", true)
+          : statusTag("Não iniciada") },
+        { label: "CTA", render: (row) => statusTag(row.cta_clicked ? "Sim" : "Não", row.cta_clicked) },
+        { label: "Checkout", render: (row) => statusTag(row.checkout_started ? "Iniciado" : "Não iniciado", row.checkout_started) },
+        { label: "Vínculo", render: (row) => statusTag(row.link_status === "linked" ? "Vinculada" : "Anônima", row.link_status === "linked") },
+      ], data.items);
+      appendSessionsPager(target, data.pagination);
+      target.appendChild(element("p", data.privacy, "caveat"));
+    } catch (error) {
+      message(target, `Não foi possível consultar as sessões: ${error.message}`, "error");
+    }
+  }
+
+  async function loadSessionDetail(sessionId) {
+    const target = byId("session-detail");
+    target.hidden = false;
+    message(target, "Reconstruindo o raio X permitido…", "loading");
+    try {
+      const data = await fetchData(`/sessions/${encodeURIComponent(sessionId)}`, periodParams());
+      clear(target);
+
+      const heading = element("article", null, "data-block");
+      heading.appendChild(element("h3", `Sessão ${data.session.session_label}`));
+      const linkCopy = data.session.link_status === "linked"
+        ? `Posteriormente vinculada ao usuário interno #${data.session.linked_user_id} em ${formatDate(data.session.linked_at)}.`
+        : "Permanece anônima; nenhuma identidade é inferida.";
+      heading.appendChild(element("p", linkCopy));
+      target.appendChild(heading);
+
+      const metrics = element("div", null, "metrics");
+      metrics.appendChild(metricCard("Início", formatDate(data.session.started_at), `Origem: ${data.session.entry_source || "não informada"}`));
+      metrics.appendChild(metricCard("Última atividade", formatDate(data.session.last_seen_at), `Dispositivo: ${data.session.device_class || "não informado"}`));
+      metrics.appendChild(metricCard("Duração aproximada", formatDuration(data.session.duration_seconds), `Estágio: ${data.summary.stage.label}`));
+      metrics.appendChild(metricCard("Itens exibidos", data.timeline.length, `${data.timeline_total} item(ns) no período`));
+      target.appendChild(metrics);
+
+      if (!data.timeline.length) {
+        target.appendChild(element("div", "Nenhum evento encontrado no período.", "empty"));
+      } else {
+        const timeline = element("div", null, "timeline");
+        data.timeline.forEach((item) => {
+          const card = element("article");
+          if (["vsl_progress", "cta_clicked", "checkout_started", "behavioral_session_linked"].includes(item.type)) {
+            card.classList.add("is-key-event");
+          }
+          card.appendChild(element("time", formatDate(item.occurred_at)));
+          card.appendChild(element("strong", title(item.type)));
+          const context = [item.section_id, item.book_id, item.document_id].filter(Boolean).join(" · ");
+          if (context) card.appendChild(element("small", context));
+          if (item.delta_seconds > 0) card.appendChild(element("small", `+${formatDuration(item.delta_seconds)} desde o evento anterior`));
+          if (Object.keys(item.details || {}).length) card.appendChild(element("small", JSON.stringify(item.details)));
+          timeline.appendChild(card);
+        });
+        target.appendChild(timeline);
+      }
+
+      target.appendChild(element("p", data.purchase_copy, "caveat"));
+      if (data.timeline_truncated) {
+        target.appendChild(element("p", "A timeline atingiu o limite de segurança; reduza o período para inspecionar mais detalhes.", "caveat"));
+      }
+      target.appendChild(element("p", data.privacy, "caveat"));
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      message(target, `Não foi possível consultar o raio X: ${error.message}`, "error");
     }
   }
 
@@ -282,6 +433,7 @@
     all("[data-panel]").forEach((panel) => { panel.hidden = panel.dataset.panel !== view; });
     if (view === "overview") loadOverview();
     if (view === "funnel") loadFunnel();
+    if (view === "sessions") loadSessions(byId("sessions-filters"), state.sessionsPage);
     if (view === "reading") loadReading();
     if (view === "users") loadUsers();
   }
@@ -293,9 +445,17 @@
       if (userId) loadJourney(userId);
       return;
     }
+    if (state.view === "sessions") {
+      loadSessions(byId("sessions-filters"), 1);
+      return;
+    }
     selectView(state.view);
   });
   byId("reading-filters").addEventListener("submit", (event) => { event.preventDefault(); loadReading(event.currentTarget); });
+  byId("sessions-filters").addEventListener("submit", (event) => {
+    event.preventDefault();
+    loadSessions(event.currentTarget, 1);
+  });
   byId("users-filters").addEventListener("submit", (event) => { event.preventDefault(); loadUsers(event.currentTarget); });
   byId("journey-form").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -307,6 +467,16 @@
     byId("journey-form").elements.user_id.value = button.dataset.journeyUser;
     selectView("journey");
     loadJourney(button.dataset.journeyUser);
+  });
+  byId("sessions-content").addEventListener("click", (event) => {
+    const sessionButton = event.target.closest("[data-session-id]");
+    if (sessionButton) {
+      loadSessionDetail(sessionButton.dataset.sessionId);
+      return;
+    }
+    const pageButton = event.target.closest("[data-sessions-page]");
+    if (!pageButton || pageButton.disabled) return;
+    loadSessions(byId("sessions-filters"), Number(pageButton.dataset.sessionsPage));
   });
 
   setInitialPeriod();
