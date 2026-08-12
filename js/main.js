@@ -795,15 +795,11 @@
 
       const bookButton = event.target.closest("[data-book-index]");
       if (bookButton) {
-        if (primeLibraryTileOnTouch(bookButton, event)) return;
         if (bookButton.closest(".preportal, .preportal-page")) {
-          const book = books[Number(bookButton.dataset.bookIndex)];
-          if (book?.id === FRAGMENT_BOOK_ID) {
-            document.getElementById("fragmento-despertar")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            window.setTimeout(() => els.fragmentOpen?.focus?.({ preventScroll: true }), 420);
-          }
+          primeLibraryTileOnTouch(bookButton, event);
           return;
         }
+        if (primeLibraryTileOnTouch(bookButton, event)) return;
         if (bookButton.getAttribute("aria-disabled") === "true") return;
         selectBook(Number(bookButton.dataset.bookIndex), {
           documentId: bookButton.dataset.readerDocumentId || undefined,
